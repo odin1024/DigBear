@@ -113,6 +113,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::app_start_url,
+            commands::disk_space,
+            commands::export_list,
             commands::save_settings,
             commands::pick_download_dir,
             commands::crawl_site,

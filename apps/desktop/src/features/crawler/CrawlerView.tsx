@@ -18,7 +18,9 @@ import {
   MEDIA_KINDS,
   countResources,
   extractUrl,
+  hostOf,
   normalizeHttpUrl,
+  prettyPath,
 } from "../../shared/format";
 import { Mascot, type MascotMood } from "../../shared/components/Mascot";
 import { t } from "../../shared/i18n";
@@ -40,6 +42,31 @@ const SORT_OPTIONS: Array<{ value: SortBy; label: string }> = [
   { value: "duration", label: "时长" },
   { value: "name", label: "文件名" },
 ];
+
+/** CSV 单元格转义：含逗号、引号或换行时加引号。 */
+function csvCell(value: string | number | null): string {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/** 把采集结果导出成 CSV 文本。 */
+export function toCsv(resources: MediaResource[]): string {
+  const header = ["url", "kind", "file", "width", "height", "duration", "host"];
+  const rows = resources.map((resource) =>
+    [
+      resource.url,
+      resource.kind,
+      resource.filename_hint ?? "",
+      resource.width ?? "",
+      resource.height ?? "",
+      resource.duration ?? "",
+      resource.host,
+    ]
+      .map(csvCell)
+      .join(",")
+  );
+  return [header.join(","), ...rows].join("\r\n");
+}
 
 /** 像素数，用于按分辨率排序。 */
 function pixelCount(resource: MediaResource): number {
@@ -369,6 +396,27 @@ export function CrawlerView({
     void handleCrawl(found);
   };
 
+  /* 导出清单（CSV / JSON）。 */
+  const handleExport = async (format: "csv" | "json") => {
+    if (!result || result.resources.length === 0) return;
+    const content =
+      format === "csv"
+        ? toCsv(result.resources)
+        : JSON.stringify(result.resources, null, 2);
+    const host = hostOf(result.final_url || result.page_url) || "digbear";
+    const stamp = new Date().toISOString().slice(0, 10);
+    try {
+      const path = await api.exportList(content, `digbear-${host}-${stamp}.${format}`);
+      if (path) {
+        message.success(
+          t(`清单已导出到 ${prettyPath(path)}`, `List exported to ${prettyPath(path)}`)
+        );
+      }
+    } catch (error) {
+      message.error(toAppError(error).message);
+    }
+  };
+
   /* 重新下载失败的文件。 */
   const handleRetryFailed = async () => {
     if (!result || !summary || summary.failures.length === 0 || downloading || retrying) return;
@@ -683,6 +731,22 @@ export function CrawlerView({
                               {t("清空", "Clear")}
                             </button>
                           )}
+                          <div className="result-toolbar__export">
+                            <button
+                              type="button"
+                              className="rb-text-link"
+                              onClick={() => void handleExport("csv")}
+                            >
+                              {t("导出 CSV", "Export CSV")}
+                            </button>
+                            <button
+                              type="button"
+                              className="rb-text-link"
+                              onClick={() => void handleExport("json")}
+                            >
+                              {t("导出 JSON", "Export JSON")}
+                            </button>
+                          </div>
                         </div>
                       </div>
 

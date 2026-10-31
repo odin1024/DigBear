@@ -170,6 +170,22 @@ pub fn maybe_spawn(handle: AppHandle) {
         });
     }
 
+    // 打印目标目录所在磁盘的剩余空间。
+    if let Ok(dir) = std::env::var("DIGBEAR_TEST_DISK") {
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            match crate::core::disk::free_space(std::path::Path::new(&dir)) {
+                Some((available, total)) => eprintln!(
+                    "[digbear][test] disk {}: 可用 {} / 共 {}",
+                    dir,
+                    crate::core::disk::human_size(available),
+                    crate::core::disk::human_size(total)
+                ),
+                None => eprintln!("[digbear][test] disk {}: 查询失败", dir),
+            }
+        });
+    }
+
     if std::env::var("DIGBEAR_TEST_MEASURE").ok().as_deref() == Some("1") {
         let handle = extension_handle.clone();
         tauri::async_runtime::spawn(async move {

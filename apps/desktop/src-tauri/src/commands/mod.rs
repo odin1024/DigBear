@@ -7,6 +7,60 @@ use crate::{crawler, downloader, extensions, session};
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::DialogExt;
 
+/// 磁盘空间信息（字节 + 可读文本）。
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DiskSpace {
+    pub available: u64,
+    pub total: u64,
+    pub available_text: String,
+    pub total_text: String,
+}
+
+/// 查询某个目录所在磁盘的剩余空间。
+#[tauri::command]
+pub fn disk_space(path: String) -> Option<DiskSpace> {
+    let (available, total) = crate::core::disk::free_space(std::path::Path::new(&path))?;
+    Some(DiskSpace {
+        available,
+        total,
+        available_text: crate::core::disk::human_size(available),
+        total_text: crate::core::disk::human_size(total),
+    })
+}
+
+/// 把清单文本写到用户选择的位置。
+///
+/// 由后端弹出保存对话框并写文件 —— 前端不需要文件系统权限。
+#[tauri::command]
+pub async fn export_list(
+    app: AppHandle,
+    content: String,
+    suggested_name: String,
+) -> Result<Option<String>, AppError> {
+    let dialog_app = app.clone();
+    let selected = tauri::async_runtime::spawn_blocking(move || {
+        dialog_app
+            .dialog()
+            .file()
+            .set_title("导出清单")
+            .add_filter("清单文件", &["csv", "json", "txt"])
+            .set_file_name(&suggested_name)
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|error| AppError::internal(format!("保存对话框失败: {error}")))?;
+
+    let Some(file_path) = selected else {
+        return Ok(None);
+    };
+    let target = file_path
+        .into_path()
+        .map_err(|_| AppError::internal("保存路径无效。"))?;
+    std::fs::write(&target, content.as_bytes())
+        .map_err(|error| AppError::internal(format!("写入文件失败: {error}")))?;
+    Ok(Some(target.to_string_lossy().to_string()))
+}
+
 #[tauri::command]
 pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, AppError> {
     Ok(state.settings())

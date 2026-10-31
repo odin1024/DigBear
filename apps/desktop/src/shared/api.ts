@@ -70,6 +70,13 @@ export interface AppSettings {
   filename_template: string;
 }
 
+export interface DiskSpace {
+  available: number;
+  total: number;
+  available_text: string;
+  total_text: string;
+}
+
 export interface DownloadFile {
   id: string;
   url: string;
@@ -257,6 +264,12 @@ export const api = {
   getSiteSession: (url: string) => call<SessionInfo>("get_site_session", { url }),
   clearSiteSession: (url: string) =>
     call<SessionInfo>("clear_site_session", { url }),
+
+  /** 查询目录所在磁盘的剩余空间。 */
+  diskSpace: (path: string) => call<DiskSpace | null>("disk_space", { path }),
+  /** 导出清单：后端弹保存对话框并写文件，返回写入路径。 */
+  exportList: (content: string, suggestedName: string) =>
+    call<string | null>("export_list", { content, suggestedName }),
 
   revealPath: (path: string) => call<null>("reveal_path", { path }),
   openUrl: (url: string) => call<null>("open_url", { url }),

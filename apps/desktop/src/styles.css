@@ -405,6 +405,25 @@ textarea,
   padding: 0 32px;
 }
 
+/* 磁盘剩余空间提示 */
+.folder-field__space {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.folder-field__space--low {
+  color: var(--berry);
+  font-weight: 700;
+}
+
+/* 导出清单 */
+.result-toolbar__export {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 /* 文件名模板输入 */
 .template-field {
   flex: 1 1 320px;

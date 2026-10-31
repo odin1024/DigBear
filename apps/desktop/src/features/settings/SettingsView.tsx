@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   api,
   type AppSettings,
+  type DiskSpace,
   type MediaKind,
 } from "../../shared/api";
 import { toAppError, type AppError } from "../../shared/errors";
