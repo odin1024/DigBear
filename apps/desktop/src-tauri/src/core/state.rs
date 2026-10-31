@@ -1,4 +1,5 @@
 use crate::core::config::SettingsStore;
+use crate::core::history::HistoryStore;
 use crate::core::error::AppError;
 use crate::core::models::AppSettings;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -7,14 +8,18 @@ use tokio::sync::Mutex;
 
 pub struct AppState {
     pub settings: SettingsStore,
+    pub history: HistoryStore,
     pub crawl_lock: Mutex<()>,
     pub download_cancel: AtomicBool,
 }
 
 impl AppState {
     pub fn new(app: &AppHandle) -> Result<Self, AppError> {
+        let settings = SettingsStore::load(app)?;
+        let history = HistoryStore::load(settings.dir());
         Ok(Self {
-            settings: SettingsStore::load(app)?,
+            settings,
+            history,
             crawl_lock: Mutex::new(()),
             download_cancel: AtomicBool::new(false),
         })

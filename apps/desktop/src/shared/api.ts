@@ -148,6 +148,26 @@ export interface DownloadRequest {
   items: DownloadItemRequest[];
 }
 
+
+/** 最近翻找过的一个网址。 */
+export interface HistoryEntry {
+  id: string;
+  url: string;
+  title: string;
+  host: string;
+  total: number;
+  counts: Record<string, number>;
+  crawled_at: number;
+}
+
+/** 收藏的站点。 */
+export interface FavoriteEntry {
+  id: string;
+  url: string;
+  title: string;
+  host: string;
+  added_at: number;
+}
 /* ---------------- Event payloads ---------------- */
 
 export type CrawlStage = "loading" | "extracting" | "done";
@@ -284,4 +304,18 @@ export const api = {
 
   setAppLanguage: (language: "zh" | "en") =>
     call<null>("set_app_language", { language }),
+  /* ---------------- 历史记录与收藏 ---------------- */
+
+  history: () => call<HistoryEntry[]>("list_history"),
+  recordHistory: (entry: HistoryEntry) =>
+    call<HistoryEntry[]>("record_history", { entry }),
+  clearHistory: () => call<HistoryEntry[]>("clear_history"),
+  favorites: () => call<FavoriteEntry[]>("list_favorites"),
+  toggleFavorite: (entry: FavoriteEntry) =>
+    call<FavoriteEntry[]>("toggle_favorite", { entry }),
+  removeFavorite: (url: string) =>
+    call<FavoriteEntry[]>("remove_favorite", { url }),
+
+  /** 读取系统剪贴板里的文字。 */
+  readClipboard: () => call<string | null>("read_clipboard"),
 };

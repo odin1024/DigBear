@@ -13,6 +13,44 @@
 
 > 此处记录尚未发布的变更。发布时按 `docs/RELEASES.md` 的流程整理到正式版本段落。
 
+### 新增 · 多网址批量翻找队列
+
+- 首页输入框旁新增「加入队列」按钮，可把多个网址排进队列
+- 队列非空时点「开始翻找」按顺序逐个翻找，结果合并成一份清单
+- 队列条目可单独移除，也可一键清空
+- 队列翻找同样会逐条写进历史记录
+
+### 新增 · 历史记录与收藏
+
+- 新增 `core/history.rs`：历史与收藏分别落在配置目录的 `history.json` / `favorites.json`
+- 历史记录同一网址只保留最新一条，最多 100 条，重复翻找会顶到最前面
+- 结果页顶栏新增「收藏」按钮，一键把常翻的站点存下来
+- 首页展示「收藏的站点」与「最近翻找」两组快捷入口，点一下就填进输入框
+- 收藏可单独取消，历史可一键清空
+
+### 新增 · 剪贴板直读
+
+- 新增 `tauri-plugin-clipboard-manager`，首页输入框旁新增剪贴板按钮，一键读出网址
+- 系统托盘菜单「翻找剪贴板链接」此前只发了事件、前端没接 —— 现在真正可用：
+  读出剪贴板、识别出网址后直接开始翻找
+
+### 修复
+
+- 首页内容变高后顶部被裁：吉祥物气泡与标题会被 `justify-content: center` 切掉，
+  改用首尾子元素的 auto margin 实现居中，内容超高时改为从顶部排、完整可滚动
+- 关于弹窗里的版本号一直写着 `v0.3.2`，与实际版本脱节；
+  改为读 `src/shared/version.ts` 的 `APP_VERSION`，并纳入 `scripts/check_version.py` 的校验
+- `pnpm install` 在 pnpm 12 下会因 esbuild 的构建脚本未授权而失败，
+  `pnpm-workspace.yaml` 的 `allowBuilds` 已补齐
+- pnpm 会跳过 `@tauri-apps/cli` 的 Windows 平台二进制包，导致 `tauri` 命令不可用；
+  改为在 `apps/desktop/package.json` 的 `optionalDependencies` 里显式声明
+
+### 工程
+
+- 新增 `scripts/build_windows.ps1`：把源码同步到纯 ASCII 路径的构建目录，
+  自动修正 GNU 工具链下的 `crate-type` 与 `beforeBuildCommand`，编译、打包并收集安装包
+- `scripts/check_version.py` 增加 `src/shared/version.ts` 版本号校验
+
 ## [0.4.0] - 2026-10-31
 
 Windows 移植版首个正式版本。相对上游 `0.3.2`，补齐了全部 Windows 平台分支，

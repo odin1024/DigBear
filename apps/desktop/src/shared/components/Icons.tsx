@@ -276,3 +276,46 @@ export function PlayCircleIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** 收藏用的星标；`filled` 时填实心。 */
+export function StarIcon({ size = 16, filled = false, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M10 2.6l2.32 4.7 5.18.76-3.75 3.65.88 5.16L10 14.4l-4.63 2.47.88-5.16L2.5 8.06l5.18-.76L10 2.6Z" />
+    </svg>
+  );
+}
+/** 剪贴板图标。 */
+export function ClipboardIcon({ size = 16, ...props }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M7.4 3.6H5.8c-.7 0-1.3.6-1.3 1.3v11c0 .7.6 1.3 1.3 1.3h8.4c.7 0 1.3-.6 1.3-1.3v-11c0-.7-.6-1.3-1.3-1.3h-1.6" />
+      <rect x="7.2" y="2.2" width="5.6" height="2.8" rx="0.9" />
+      <path d="M7.6 9.4h4.8M7.6 12.4h3.2" />
+    </svg>
+  );
+}

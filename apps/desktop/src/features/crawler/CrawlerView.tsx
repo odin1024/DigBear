@@ -15,6 +15,8 @@ import {
   type DownloadItemEvent,
   type DownloadProgress,
   type DownloadSummary,
+  type FavoriteEntry,
+  type HistoryEntry,
   type MediaKind,
   type MediaResource,
 } from "../../shared/api";
@@ -29,8 +31,14 @@ import {
 } from "../../shared/format";
 import { Mascot, type MascotMood } from "../../shared/components/Mascot";
 import { t } from "../../shared/i18n";
-import { ArrowLeftIcon, CloseIcon, SparkIcon } from "../../shared/components/Icons";
+import {
+  ArrowLeftIcon,
+  CloseIcon,
+  SparkIcon,
+  StarIcon,
+} from "../../shared/components/Icons";
 import { CrawlForm } from "./components/CrawlForm";
+import { HomeShortcuts } from "./components/HomeShortcuts";
 import { CrawlProgressPanel } from "./components/CrawlProgressPanel";
 import { KindFilter } from "./components/KindFilter";
 import { ResourceCard, type ResourceStatus } from "./components/ResourceCard";
@@ -136,8 +144,96 @@ export function CrawlerView({
   const [queue, setQueue] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  /** 收藏的站点。 */
+  const [favorites, setFavorites] = useState<FavoriteEntry[]>([]);
+  /** 最近翻找过的网址。 */
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const resultsScrollRef = useRef<HTMLDivElement>(null);
+
+  /* 收藏与历史：桌面端才有，浏览器预览下静默跳过。 */
+  const refreshShortcuts = useCallback(async () => {
+    try {
+      const [nextHistory, nextFavorites] = await Promise.all([
+        api.history(),
+        api.favorites(),
+      ]);
+      setHistory(nextHistory);
+      setFavorites(nextFavorites);
+    } catch {
+      /* 预览模式没有桌面能力 */
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshShortcuts();
+  }, [refreshShortcuts]);
+
+  /* 翻完之后把这次记进历史。 */
+  const rememberCrawl = useCallback(
+    (entry: {
+      url: string;
+      title: string;
+      host: string;
+      total: number;
+      counts: Record<string, number>;
+    }) => {
+      void api
+        .recordHistory({
+          id: "",
+          url: entry.url,
+          title: entry.title,
+          host: entry.host,
+          total: entry.total,
+          counts: entry.counts,
+          crawled_at: Math.floor(Date.now() / 1000),
+        })
+        .then(setHistory)
+        .catch(() => {
+          /* 历史写不进去也不影响翻找 */
+        });
+    },
+    []
+  );
+
+  /* 托盘菜单「翻找剪贴板链接」：读剪贴板，认得出网址就直接翻。 */
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    listen("tray-crawl", () => {
+      void api
+        .readClipboard()
+        .then((text) => {
+          if (disposed || !text) return;
+          const target =
+            normalizeHttpUrl(text.trim()) ?? normalizeHttpUrl(extractUrl(text));
+          if (!target) {
+            message.warning(
+              t("剪贴板里没有网址。", "No URL found in the clipboard.")
+            );
+            return;
+          }
+          setUrl(target);
+          void crawlRef.current(target);
+        })
+        .catch(() => {
+          message.warning(
+            t("读不到剪贴板内容。", "Could not read the clipboard.")
+          );
+        });
+    })
+      .then((off) => {
+        if (disposed) off();
+        else unlisten = off;
+      })
+      .catch(() => {
+        /* 预览模式没有事件系统 */
+      });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [message]);
 
   const backHome = () => {
     if (downloading) return;
@@ -335,6 +431,13 @@ export function CrawlerView({
           max_items: settings?.max_items ?? 500,
         });
         collected.push(next);
+        rememberCrawl({
+          url: next.final_url || next.page_url,
+          title: next.title,
+          host: next.host,
+          total: next.resources.length,
+          counts: next.counts,
+        });
       } catch (error) {
         message.error(t(`${target} 翻找失败`, `${target} failed`), 6);
       }
@@ -396,6 +499,13 @@ export function CrawlerView({
       setResult(next);
       setActiveKinds(defaultKindSet(settings));
       setPage("results");
+      rememberCrawl({
+        url: next.final_url || next.page_url,
+        title: next.title,
+        host: next.host,
+        total: next.resources.length,
+        counts: next.counts,
+      });
       setCrawlProgress({ stage: "done", message: t("翻找完成。", "Crawl complete."), percent: 100 });
       window.setTimeout(() => setCrawlProgress(null), 500);
       if (next.needs_login) {
@@ -425,6 +535,50 @@ export function CrawlerView({
   useEffect(() => {
     crawlRef.current = handleCrawl;
   });
+
+  /* 当前页是否已收藏。 */
+  const isFavorite = Boolean(
+    result && favorites.some((item) => item.url === (result.final_url || result.page_url))
+  );
+
+  const handleToggleFavorite = async () => {
+    if (!result) return;
+    const url = result.final_url || result.page_url;
+    try {
+      const next = await api.toggleFavorite({
+        id: "",
+        url,
+        title: result.title,
+        host: result.host,
+        added_at: Math.floor(Date.now() / 1000),
+      });
+      setFavorites(next);
+      message.success(
+        next.some((item) => item.url === url)
+          ? t("已收藏这个站点。", "Added to favorites.")
+          : t("已取消收藏。", "Removed from favorites.")
+      );
+    } catch (error) {
+      message.error(toAppError(error).message);
+    }
+  };
+
+  const handleRemoveFavorite = async (url: string) => {
+    try {
+      setFavorites(await api.removeFavorite(url));
+    } catch (error) {
+      message.error(toAppError(error).message);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      setHistory(await api.clearHistory());
+      message.success(t("历史记录已清空。", "History cleared."));
+    } catch (error) {
+      message.error(toAppError(error).message);
+    }
+  };
 
   const toggleResource = (id: string) => {
     setSelected((previous) => {
@@ -715,6 +869,13 @@ export function CrawlerView({
                 onQueue={handleQueue}
                 onUrlChange={setUrl}
                 onCrawl={handleCrawl}
+                onClipboardError={(reason) =>
+                  message.warning(
+                    reason === "empty"
+                      ? t("剪贴板里没有网址。", "No URL found in the clipboard.")
+                      : t("读不到剪贴板内容。", "Could not read the clipboard.")
+                  )
+                }
               />
               {queue.length > 0 && (
                 <div className="crawl-queue" aria-live="polite">
@@ -749,6 +910,13 @@ export function CrawlerView({
                   </ul>
                 </div>
               )}
+              <HomeShortcuts
+                favorites={favorites}
+                history={history}
+                onPick={(target) => setUrl(target)}
+                onRemoveFavorite={handleRemoveFavorite}
+                onClearHistory={handleClearHistory}
+              />
               <AnimatePresence initial={false}>
                 {crawling && (
                   <motion.div
@@ -789,6 +957,21 @@ export function CrawlerView({
                   <ArrowLeftIcon size={16} />
                   {t("再翻一页", "Crawl another page")}
                 </button>
+                {result && (
+                  <button
+                    type="button"
+                    className={`rb-star${isFavorite ? " rb-star--on" : ""}`}
+                    onClick={handleToggleFavorite}
+                    title={
+                      isFavorite
+                        ? t("取消收藏这个站点", "Remove from favorites")
+                        : t("收藏这个站点", "Add to favorites")
+                    }
+                  >
+                    <StarIcon size={16} filled={isFavorite} />
+                    {isFavorite ? t("已收藏", "Saved") : t("收藏", "Save")}
+                  </button>
+                )}
                 {settingsLoading && <span className="results-topbar__hint">{t("读取设置…", "Loading settings…")}</span>}
               </div>
 

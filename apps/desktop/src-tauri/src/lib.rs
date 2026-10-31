@@ -166,6 +166,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             fit_window_to_work_area(app.handle());
             let start_url = parse_crawl_arg(std::env::args().skip(1));
@@ -205,6 +206,13 @@ pub fn run() {
             commands::install_extension,
             commands::remove_extension,
             commands::set_app_language,
+            commands::list_history,
+            commands::record_history,
+            commands::clear_history,
+            commands::list_favorites,
+            commands::toggle_favorite,
+            commands::remove_favorite,
+            commands::read_clipboard,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DigBear");

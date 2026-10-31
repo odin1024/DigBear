@@ -1,11 +1,13 @@
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import {
   ArrowRightIcon,
+  ClipboardIcon,
   CloseIcon,
   GlobeIcon,
   PlusIcon,
 } from "../../../shared/components/Icons";
 import { t } from "../../../shared/i18n";
+import { api } from "../../../shared/api";
 
 interface CrawlFormProps {
   url: string;
@@ -14,9 +16,18 @@ interface CrawlFormProps {
   onQueue: () => void;
   onUrlChange: (value: string) => void;
   onCrawl: () => void;
+  /** 读取剪贴板失败时的提示。 */
+  onClipboardError?: (reason: "empty" | "failed") => void;
 }
 
-export function CrawlForm({ url, crawling, onQueue, onUrlChange, onCrawl }: CrawlFormProps) {
+export function CrawlForm({
+  url,
+  crawling,
+  onQueue,
+  onUrlChange,
+  onCrawl,
+  onClipboardError,
+}: CrawlFormProps) {
   return (
     <form
       className="search-pill"
@@ -64,6 +75,29 @@ export function CrawlForm({ url, crawling, onQueue, onUrlChange, onCrawl }: Craw
             <CloseIcon size={15} />
           </button>
         </>
+      )}
+      {!url && !crawling && (
+        <Tooltip title={t("从剪贴板读取", "Read from clipboard")}>
+          <button
+            type="button"
+            className="search-pill__clip"
+            aria-label={t("从剪贴板读取", "Read from clipboard")}
+            onClick={async () => {
+              try {
+                const text = await api.readClipboard();
+                if (text && text.trim()) {
+                  onUrlChange(text.trim());
+                } else {
+                  onClipboardError?.("empty");
+                }
+              } catch {
+                onClipboardError?.("failed");
+              }
+            }}
+          >
+            <ClipboardIcon size={15} />
+          </button>
+        </Tooltip>
       )}
       <Button
         type="primary"

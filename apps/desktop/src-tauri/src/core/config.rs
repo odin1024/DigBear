@@ -48,6 +48,11 @@ impl SettingsStore {
         Ok(store)
     }
 
+    /// 配置目录：历史记录、收藏都放在这里。
+    pub fn dir(&self) -> &std::path::Path {
+        self.path.parent().unwrap_or_else(|| std::path::Path::new("."))
+    }
+
     pub fn get(&self) -> AppSettings {
         self.data.read().expect("settings lock poisoned").clone()
     }

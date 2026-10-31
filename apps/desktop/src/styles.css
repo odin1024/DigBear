@@ -796,13 +796,26 @@ h3 {
 .home-page {
   display: flex;
   flex-direction: column;
-  /* safe center: 空间够时居中，空间不够时从顶部排 —— 避免 flex 居中溢出被裁 */
-  justify-content: safe center;
+  /* 空间够时整体居中，空间不够时从顶部排。
+     这里用首尾子元素的 auto margin 实现，而不是 justify-content: center ——
+     后者在内容高于容器时会把顶部（吉祥物气泡、标题）裁掉，
+     auto margin 在空间不足时会退化成 0，保证任何内容都完整可见。 */
+  justify-content: flex-start;
   gap: 18px;
   height: 100%;
-  padding-bottom: 27vh;
+  /* 顶部留出吉祥物气泡的位置（气泡挂在吉祥物上方 62px） */
+  padding-top: 54px;
+  padding-bottom: 28px;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.home-page > :first-child {
+  margin-top: auto;
+}
+
+.home-page > :last-child {
+  margin-bottom: auto;
 }
 
 .hero {
@@ -3362,7 +3375,7 @@ h3 {
 /* 中等高度：收掉一部分底部留白，吉祥物小一号 */
 @media (max-height: 860px) {
   .home-page {
-    padding-bottom: 14vh;
+    padding-bottom: 20px;
     gap: 12px;
   }
 
@@ -3384,8 +3397,8 @@ h3 {
 @media (max-height: 720px) {
   .home-page {
     padding-top: 8px;
-    padding-bottom: 6vh;
-    justify-content: safe flex-start;
+    padding-bottom: 16px;
+    justify-content: flex-start;
     gap: 10px;
   }
 
@@ -3535,4 +3548,159 @@ h3 {
     width: 100%;
     justify-content: space-between;
   }
+}
+
+/* ---------- 收藏与最近翻找 ---------- */
+
+.home-shortcuts {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.shortcut-group__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.shortcut-group__clear {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.shortcut-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shortcut-chip {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 2px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.shortcut-chip--favorite {
+  border-color: var(--honey);
+  background: color-mix(in srgb, var(--honey) 14%, var(--card));
+}
+
+.shortcut-chip__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 11px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.shortcut-chip__main > span {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shortcut-chip__main:hover {
+  color: var(--berry-deep);
+}
+
+.shortcut-chip__count {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.shortcut-chip__time {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.shortcut-chip__close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  border: 0;
+  border-left: 2px solid var(--line-soft);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.shortcut-chip__close:hover {
+  background: var(--paper-deep);
+  color: var(--berry-deep);
+}
+
+/* 读取剪贴板按钮 */
+.search-pill__clip {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.search-pill__clip:hover {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+
+/* 结果页收藏按钮 */
+.rb-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 2px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), color 0.2s var(--ease),
+    background-color 0.2s var(--ease);
+}
+
+.rb-star:hover {
+  border-color: var(--honey);
+  color: var(--ink);
+}
+
+.rb-star--on {
+  border-color: var(--honey);
+  background: color-mix(in srgb, var(--honey) 18%, var(--card));
+  color: var(--ink);
 }

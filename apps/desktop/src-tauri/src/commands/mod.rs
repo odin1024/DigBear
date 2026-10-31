@@ -1,4 +1,5 @@
 use crate::core::error::AppError;
+use crate::core::history::{FavoriteEntry, HistoryEntry};
 use crate::core::models::{
     AppSettings, CrawlRequest, CrawlResult, DownloadRequest, DownloadSummary, LoginSite, SessionInfo,
 };
@@ -307,4 +308,60 @@ pub fn remove_extension(
 pub fn set_app_language(app: AppHandle, language: String) -> Result<(), AppError> {
     crate::build_app_menu(&app, language == "en")
         .map_err(|error| AppError::internal(format!("无法更新菜单语言: {error}")))
+}
+
+/* ---------------- 历史记录与收藏 ---------------- */
+
+/// 最近翻找过的网址。
+#[tauri::command]
+pub fn list_history(state: State<'_, AppState>) -> Result<Vec<HistoryEntry>, AppError> {
+    Ok(state.history.history())
+}
+
+/// 记一条翻找历史（同一网址只留最新一条）。
+#[tauri::command]
+pub fn record_history(
+    state: State<'_, AppState>,
+    entry: HistoryEntry,
+) -> Result<Vec<HistoryEntry>, AppError> {
+    state.history.record(entry)
+}
+
+/// 清空翻找历史。
+#[tauri::command]
+pub fn clear_history(state: State<'_, AppState>) -> Result<Vec<HistoryEntry>, AppError> {
+    state.history.clear_history()
+}
+
+/// 收藏的站点列表。
+#[tauri::command]
+pub fn list_favorites(state: State<'_, AppState>) -> Result<Vec<FavoriteEntry>, AppError> {
+    Ok(state.history.favorites())
+}
+
+/// 收藏 / 取消收藏，返回操作后的列表。
+#[tauri::command]
+pub fn toggle_favorite(
+    state: State<'_, AppState>,
+    entry: FavoriteEntry,
+) -> Result<Vec<FavoriteEntry>, AppError> {
+    state.history.toggle_favorite(entry)
+}
+
+/// 取消收藏。
+#[tauri::command]
+pub fn remove_favorite(
+    state: State<'_, AppState>,
+    url: String,
+) -> Result<Vec<FavoriteEntry>, AppError> {
+    state.history.remove_favorite(&url)
+}
+
+/// 读取系统剪贴板里的文字。
+///
+/// 托盘菜单「翻找剪贴板链接」和首页的粘贴按钮都用它。
+#[tauri::command]
+pub fn read_clipboard(app: AppHandle) -> Result<Option<String>, AppError> {
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    Ok(app.clipboard().read_text().ok())
 }

@@ -31,12 +31,18 @@ def conf_version(path):
     return json.loads(read(path)).get("version")
 
 
+def ts_version(path):
+    m = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', read(path))
+    return m.group(1) if m else None
+
+
 SOURCES = [
     ("package.json", pkg_version),
     ("apps/desktop/package.json", pkg_version),
     ("apps/website/package.json", pkg_version),
     ("apps/desktop/src-tauri/Cargo.toml", toml_version),
     ("apps/desktop/src-tauri/tauri.conf.json", conf_version),
+    ("apps/desktop/src/shared/version.ts", ts_version),
 ]
 
 

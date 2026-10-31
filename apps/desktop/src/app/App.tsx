@@ -6,6 +6,7 @@ import { api, type AppSettings } from "../shared/api";
 import { toAppError, type AppError } from "../shared/errors";
 import { Masthead, type AppView } from "./Masthead";
 import { detectLocale, resolveLocale, setLocale, t } from "../shared/i18n";
+import { APP_VERSION } from "../shared/version";
 import { cssVarsFor, DEFAULT_THEME, type ThemeName } from "../theme";
 import { CrawlerView } from "../features/crawler/CrawlerView";
 import { SettingsView } from "../features/settings/SettingsView";
@@ -130,7 +131,7 @@ export default function App({ onThemeChange }: AppProps) {
               "Use it for learning and organizing your own media. Respect each site's terms and copyright; save only content you are allowed to use.",
             )}
           </p>
-          <p className="about-modal__version">v0.3.2</p>
+          <p className="about-modal__version">v{APP_VERSION}</p>
         </div>
       ),
     });
