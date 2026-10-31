@@ -6,7 +6,8 @@ mod downloader;
 mod extensions;
 mod session;
 
-use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+use tauri::menu::{Menu, MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
 /// Replace the default File/Edit/View/Window/Help bar with a tiny app menu:
@@ -60,6 +61,77 @@ fn parse_crawl_arg<I: Iterator<Item = String>>(mut args: I) -> Option<String> {
     None
 }
 
+/// 建系统托盘图标。
+///
+/// 托盘常驻后可以随时把窗口唤回、翻找剪贴板里的链接、退出应用。
+fn build_tray(app: &tauri::AppHandle) {
+    let show_item = match MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>) {
+        Ok(item) => item,
+        Err(error) => {
+            eprintln!("[digbear] 托盘菜单项创建失败: {error}");
+            return;
+        }
+    };
+    let crawl_item = match MenuItem::with_id(app, "crawl", "翻找剪贴板链接", true, None::<&str>) {
+        Ok(item) => item,
+        Err(error) => {
+            eprintln!("[digbear] 托盘菜单项创建失败: {error}");
+            return;
+        }
+    };
+    let quit_item = match MenuItem::with_id(app, "quit", "退出", true, None::<&str>) {
+        Ok(item) => item,
+        Err(error) => {
+            eprintln!("[digbear] 托盘菜单项创建失败: {error}");
+            return;
+        }
+    };
+    let menu = match Menu::with_items(app, &[&show_item, &crawl_item, &quit_item]) {
+        Ok(menu) => menu,
+        Err(error) => {
+            eprintln!("[digbear] 托盘菜单创建失败: {error}");
+            return;
+        }
+    };
+    let mut builder = TrayIconBuilder::with_id("main")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .tooltip("掘掘熊 · DigBear")
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show" => show_main_window(app),
+            "crawl" => {
+                let _ = app.emit("tray-crawl", ());
+            }
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
+            }
+        });
+    if let Some(icon) = app.default_window_icon().cloned() {
+        builder = builder.icon(icon);
+    }
+    if let Err(error) = builder.build(app) {
+        eprintln!("[digbear] 托盘图标创建失败: {error}");
+    }
+}
+
+/// 把主窗口唤到前台。
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
 /// 按主显示器的工作区调整窗口初始尺寸。
 ///
 /// 上游把窗口写死成 1240x900，但在 1536x864 / 125% 缩放这类很常见的屏幕上，
@@ -93,6 +165,7 @@ fn fit_window_to_work_area(app: &tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             fit_window_to_work_area(app.handle());
             let start_url = parse_crawl_arg(std::env::args().skip(1));
@@ -102,6 +175,7 @@ pub fn run() {
             app.manage(StartUrl(start_url));
             let state = core::state::AppState::new(app.handle())?;
             app.manage(state);
+            build_tray(app.handle());
             build_app_menu(app.handle(), false)?;
             app.on_menu_event(|app, event| {
                 let id = event.id().0.as_str().to_string();

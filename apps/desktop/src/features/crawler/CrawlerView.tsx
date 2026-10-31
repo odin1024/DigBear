@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { App as AntApp, Button, Checkbox, Select } from "antd";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { listen } from "@tauri-apps/api/event";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 import {
   api,
   type AppSettings,
@@ -154,6 +159,26 @@ export function CrawlerView({
     if (settings && !result) setActiveKinds(defaultKindSet(settings));
   }, [settings, result]);
 
+  /* 下载完成后发系统通知 —— 窗口不在前台时也能知道结果。 */
+  const notifyFinished = useCallback(async (count: number, failed: number) => {
+    try {
+      let granted = await isPermissionGranted();
+      if (!granted) {
+        granted = (await requestPermission()) === "granted";
+      }
+      if (!granted) return;
+      sendNotification({
+        title: "掘掘熊 · DigBear",
+        body:
+          failed > 0
+            ? `收好了 ${count} 件，还有 ${failed} 件没收到`
+            : `收好了 ${count} 件，都进袋子里了`,
+      });
+    } catch {
+      /* 通知不可用时静默跳过 */
+    }
+  }, []);
+
   /* Backend events: crawl progress and batch download lifecycle. */
   useEffect(() => {
     let cancelled = false;
@@ -196,6 +221,29 @@ export function CrawlerView({
       setStatuses((previous) => ({ ...previous, ...statusesFromSummary(payload) }));
       setDownloading(false);
       setDownloadProgress(null);
+      void notifyFinished(payload.success_count, payload.failed_count);
+    });
+
+    /* 托盘菜单「翻找剪贴板链接」。 */
+    register("tray-crawl", () => {
+      void (async () => {
+        let text = "";
+        try {
+          text = await navigator.clipboard.readText();
+        } catch {
+          message.info(t("读不到剪贴板。", "Cannot read the clipboard."));
+          return;
+        }
+        const found =
+          normalizeHttpUrl(text.trim()) ?? normalizeHttpUrl(extractUrl(text.trim()));
+        if (!found) {
+          message.info(t("剪贴板里没有网址。", "No URL in the clipboard."));
+          return;
+        }
+        setUrl(found);
+        setPage("home");
+        void handleCrawl(found);
+      })();
     });
 
     return () => {
