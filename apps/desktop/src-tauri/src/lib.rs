@@ -1,6 +1,5 @@
 mod commands;
 mod core;
-#[cfg(debug_assertions)]
 mod devtest;
 mod crawler;
 mod downloader;
@@ -43,10 +42,41 @@ pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Re
     Ok(())
 }
 
+/// 按主显示器的工作区调整窗口初始尺寸。
+///
+/// 上游把窗口写死成 1240x900，但在 1536x864 / 125% 缩放这类很常见的屏幕上，
+/// 逻辑可用区只有 1229x653 —— 窗口比屏幕还大，标题栏和上下边框会被直接顶掉，
+/// 底部内容也看不全。这里按实际工作区夹紧，保证窗口始终完整可见。
+fn fit_window_to_work_area(app: &tauri::AppHandle) {
+    const PREFERRED_W: f64 = 1240.0;
+    const PREFERRED_H: f64 = 860.0;
+    const MIN_W: f64 = 640.0;
+    const MIN_H: f64 = 440.0;
+    const MARGIN: f64 = 36.0;
+
+    let Ok(Some(monitor)) = app.primary_monitor() else {
+        return;
+    };
+    let scale = monitor.scale_factor().max(1.0);
+    let area = monitor.work_area();
+    // work_area 是物理像素；除以缩放比才是逻辑像素。
+    let avail_w = (area.size.width as f64 / scale - MARGIN * 2.0).max(MIN_W);
+    let avail_h = (area.size.height as f64 / scale - MARGIN * 2.0).max(MIN_H);
+
+    let width = PREFERRED_W.min(avail_w);
+    let height = PREFERRED_H.min(avail_h);
+
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_size(tauri::LogicalSize::new(width, height));
+        let _ = window.center();
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            fit_window_to_work_area(app.handle());
             let state = core::state::AppState::new(app.handle())?;
             app.manage(state);
             build_app_menu(app.handle(), false)?;
@@ -54,7 +84,6 @@ pub fn run() {
                 let id = event.id().0.as_str().to_string();
                 let _ = app.emit("app-menu", id);
             });
-            #[cfg(debug_assertions)]
             devtest::maybe_spawn(app.handle().clone());
             Ok(())
         })

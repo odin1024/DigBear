@@ -9,19 +9,19 @@ const MONO_FONT =
 
 /** Design tokens — keep in sync with docs/design.md §4 and src/styles.css. */
 export const palette = {
-  paper: "#FFF7E8",
-  paperDeep: "#FBE8C8",
-  card: "#FFFCF3",
-  ink: "#33261D",
-  inkSoft: "#5E4936",
-  muted: "#8E7A63",
+  paper: "#FAF5EC",
+  paperDeep: "#EFE3D0",
+  card: "#FFFDF8",
+  ink: "#2E2440",
+  inkSoft: "#584A6D",
+  muted: "#8A7EA0",
   fur: "#B97B43",
   furLight: "#F0D3A7",
-  honey: "#F9C74F",
+  honey: "#F0A830",
   berry: "#E2553C",
   berryDeep: "#B93A24",
-  leaf: "#5E9C68",
-  sky: "#7FB6C9",
+  leaf: "#4F9E8C",
+  sky: "#6FA8C7",
 } as const;
 
 export const theme: ThemeConfig = {
@@ -40,9 +40,9 @@ export const theme: ThemeConfig = {
     colorText: palette.ink,
     colorTextSecondary: palette.inkSoft,
     colorTextTertiary: palette.muted,
-    colorTextQuaternary: "#B8A48B",
+    colorTextQuaternary: "#A99BB8",
     colorBorder: palette.ink,
-    colorBorderSecondary: "#E8D3B4",
+    colorBorderSecondary: "#DED4E6",
     borderRadius: 14,
     borderRadiusSM: 10,
     borderRadiusLG: 20,
@@ -51,15 +51,15 @@ export const theme: ThemeConfig = {
     fontSize: 14,
     fontFamily: BODY_FONT,
     fontFamilyCode: MONO_FONT,
-    boxShadow: "4px 4px 0 rgba(51, 38, 29, 0.16)",
-    boxShadowSecondary: "6px 6px 0 rgba(51, 38, 29, 0.12)",
+    boxShadow: "4px 4px 0 rgba(46, 36, 64, 0.16)",
+    boxShadowSecondary: "6px 6px 0 rgba(46, 36, 64, 0.12)",
     motionDurationMid: "0.2s",
     wireframe: false,
   },
   components: {
     Button: {
       fontWeight: 700,
-      primaryShadow: "4px 4px 0 #33261D",
+      primaryShadow: "4px 4px 0 #2E2440",
       defaultShadow: "none",
       dangerShadow: "none",
       paddingInlineLG: 26,
@@ -89,7 +89,7 @@ export const theme: ThemeConfig = {
     },
     Progress: {
       defaultColor: palette.honey,
-      remainingColor: "#F2E1C4",
+      remainingColor: "#EFE3D0",
       lineBorderRadius: 999,
     },
     Checkbox: {
@@ -109,11 +109,11 @@ export const theme: ThemeConfig = {
       handleSizeHover: 20,
       trackBg: palette.berry,
       trackHoverBg: palette.berryDeep,
-      railBg: "#F2E1C4",
-      railHoverBg: "#EBD5B1",
+      railBg: "#EFE3D0",
+      railHoverBg: "#DCD2E4",
       handleColor: palette.berry,
       handleActiveColor: palette.berryDeep,
-      dotBorderColor: "#E8D3B4",
+      dotBorderColor: "#DED4E6",
     },
     Message: {
       contentPadding: "10px 16px",

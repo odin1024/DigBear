@@ -7,10 +7,11 @@
 //! - `DIGBEAR_TEST_URL=<url>` and optionally `DIGBEAR_TEST_DOWNLOAD=1`
 //! - `DIGBEAR_TEST_LOGIN_URL=<url>`
 //! - `DIGBEAR_TEST_EXTENSION=<id>`, `DIGBEAR_TEST_PAGE_VIDEO=<url>`
+//! - `DIGBEAR_TEST_MEASURE=1`  打印布局测量结果（排查溢出 / 尺寸问题）
 //!
 //! The upstream `CRAWLBear_*` spellings keep working as a fallback.
-
-#![cfg(debug_assertions)]
+//! The harness stays in release builds on purpose: it is the only way to
+//! diagnose layout problems on a user's machine without shipping a debugger.
 
 use crate::core::models::{CrawlRequest, DownloadItem, DownloadRequest};
 use crate::core::state::AppState;
@@ -150,6 +151,64 @@ pub fn maybe_spawn(handle: AppHandle) {
                     }
                 }
                 Err(error) => eprintln!("[digbear][test] page video resolve error: {error}"),
+            }
+        });
+    }
+
+    // 打印当前窗口的布局测量结果。
+    // 用来定位"内容被裁掉 / 超出窗口"这类问题：直接报告每个关键容器的
+    // 实际宽度与溢出量，比在浏览器里猜要可靠得多。
+    if let Ok(w) = std::env::var("DIGBEAR_TEST_RESIZE") {
+        // 把主窗口改成指定宽度（物理像素），用来验证 WebView 视口与 DPI 的关系
+        let width: u32 = w.trim().parse().unwrap_or(1000);
+        let handle = extension_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            if let Some(win) = handle.get_webview_window("main") {
+                let _ = win.set_size(tauri::PhysicalSize::new(width, 700));
+            }
+        });
+    }
+
+    if std::env::var("DIGBEAR_TEST_MEASURE").ok().as_deref() == Some("1") {
+        let handle = extension_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            let Some(win) = handle.get_webview_window("main") else {
+                eprintln!("[digbear][test] measure: 主窗口不存在");
+                return;
+            };
+            let js = r#"JSON.stringify({
+              viewport: [window.innerWidth, window.innerHeight],
+              dpr: window.devicePixelRatio,
+              outer: [window.outerWidth, window.outerHeight],
+              screen: [window.screen.width, window.screen.height],
+              avail: [window.screen.availWidth, window.screen.availHeight],
+              docScroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight],
+              bodyScroll: [document.body.scrollWidth, document.body.scrollHeight],
+              boxes: Array.from(document.querySelectorAll(
+                ".rb-app,.app-main,.view-slot,.crawler-view,.home-page,.shell,.hero,.hero__copy,.hero__mascot,.hero__mascot-stage,.home-search,.search-pill,.masthead__inner"
+              )).map(function (el) {
+                var r = el.getBoundingClientRect();
+                return {
+                  sel: el.className.split(" ").slice(0,2).join("."),
+                  l: Math.round(r.left), r: Math.round(r.right),
+                  w: Math.round(r.width), sw: el.scrollWidth,
+                };
+              })
+            })"#;
+            let win2 = win.clone();
+            let (tx, rx) = std::sync::mpsc::channel::<String>();
+            if win2.eval_with_callback(js.to_string(), move |v| { let _ = tx.send(v); }).is_err() {
+                eprintln!("[digbear][test] measure: eval 失败");
+                return;
+            }
+            match rx.recv_timeout(std::time::Duration::from_secs(8)) {
+                Ok(raw) => {
+                    let raw = raw.trim().trim_matches('"').replace("\\\"", "\"");
+                    eprintln!("[digbear][test] measure: {}", raw);
+                }
+                Err(_) => eprintln!("[digbear][test] measure: 等待超时"),
             }
         });
     }

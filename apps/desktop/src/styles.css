@@ -1,26 +1,26 @@
 /* ============================================================
-   超级爬爬熊 · CRAWLBEAR
-   Hand-drawn comic bear / sticker desk.
+   掘掘熊 · DIGBEAR
+   矿灯紫 + 琥珀：墨紫描边统一全站线条，琥珀做强调，纸白做底。
    Tokens & rules: docs/design.md
    ============================================================ */
 
 :root {
-  --paper: #fff7e8;
-  --paper-deep: #fbe8c8;
-  --card: #fffcf3;
-  --ink: #33261d;
-  --ink-soft: #5e4936;
-  --muted: #8e7a63;
+  --paper: #faf5ec;
+  --paper-deep: #efe3d0;
+  --card: #fffdf8;
+  --ink: #2e2440;
+  --ink-soft: #584a6d;
+  --muted: #8a7ea0;
   --fur: #b97b43;
   --fur-light: #f0d3a7;
-  --honey: #f9c74f;
-  --honey-deep: #eab53a;
+  --honey: #f0a830;
+  --honey-deep: #cf8b16;
   --berry: #e2553c;
   --berry-deep: #b93a24;
-  --leaf: #5e9c68;
-  --sky: #7fb6c9;
-  --line: #33261d;
-  --line-soft: #e8d3b4;
+  --leaf: #4f9e8c;
+  --sky: #6fa8c7;
+  --line: #2e2440;
+  --line-soft: #ded4e6;
 
   --font-display: "Hannotate SC", "HanziPen SC", "Yuanti SC", "PingFang SC",
     "Hiragino Sans GB", sans-serif;
@@ -448,14 +448,14 @@ h3 {
 .rb-btn--primary.ant-btn:not(:disabled) {
   background: var(--berry);
   border-color: var(--line);
-  color: #fff8ee;
+  color: #fffdf8;
   box-shadow: var(--sticker-shadow);
 }
 
 .rb-btn--primary.ant-btn:not(:disabled):hover {
   background: var(--berry-deep);
   border-color: var(--line);
-  color: #fff8ee;
+  color: #fffdf8;
   transform: translate(-1px, -2px);
   box-shadow: var(--sticker-shadow-lg);
 }
@@ -469,7 +469,7 @@ h3 {
 .rb-btn--primary.ant-btn.ant-btn-loading:not(:disabled) {
   background: var(--berry);
   border-color: var(--line);
-  color: #fff8ee;
+  color: #fffdf8;
   box-shadow: var(--sticker-shadow);
 }
 
@@ -551,7 +551,7 @@ h3 {
 }
 
 .rb-input.ant-input-affix-wrapper:hover {
-  box-shadow: 3px 3px 0 rgba(51, 38, 29, 0.16);
+  box-shadow: 3px 3px 0 rgba(46, 36, 64, 0.16);
 }
 
 .rb-input.ant-input-affix-wrapper-focused,
@@ -617,7 +617,7 @@ h3 {
   border: 2px solid var(--line);
   border-radius: var(--radius-sm);
   font-size: 12.5px;
-  box-shadow: 3px 3px 0 rgba(51, 38, 29, 0.12);
+  box-shadow: 3px 3px 0 rgba(46, 36, 64, 0.12);
 }
 
 .rb-notice.ant-alert .ant-alert-message {
@@ -643,11 +643,13 @@ h3 {
 .home-page {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* safe center: 空间够时居中，空间不够时从顶部排 —— 避免 flex 居中溢出被裁 */
+  justify-content: safe center;
   gap: 18px;
   height: 100%;
   padding-bottom: 27vh;
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .hero {
@@ -799,6 +801,14 @@ h3 {
   display: grid;
   place-items: center;
   flex: none;
+}
+
+/* Mascot 组件把尺寸写在 inline style 上（JS 里写死 292），
+   而矮屏时 stage 会缩小 —— 这里让组件跟随 stage，
+   否则内部会溢出 stage 60px，把气泡和爪子挤出容器。 */
+.hero__mascot-stage .mascot {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .mascot__asset,
@@ -1243,7 +1253,7 @@ h3 {
   color: var(--ink-soft);
   font-size: 13px;
   line-height: 1.6;
-  box-shadow: 3px 3px 0 rgba(51, 38, 29, 0.12);
+  box-shadow: 3px 3px 0 rgba(46, 36, 64, 0.12);
 }
 
 .rb-alert.ant-alert .ant-alert-icon {
@@ -1734,7 +1744,7 @@ h3 {
 
 .media-card[data-selected] .media-card__kind {
   background: var(--berry);
-  color: #fff8ee;
+  color: #fffdf8;
 }
 
 .media-card__check {
@@ -1758,7 +1768,7 @@ h3 {
 
 .media-card[data-selected] .media-card__check {
   background: var(--berry);
-  color: #fff8ee;
+  color: #fffdf8;
   transform: rotate(-3deg) scale(1.08);
 }
 
@@ -1769,7 +1779,7 @@ h3 {
   padding: 2px 8px;
   background: rgba(51, 38, 29, 0.82);
   border-radius: 999px;
-  color: #fff8ee;
+  color: #fffdf8;
   font-family: var(--font-mono);
   font-size: 10.5px;
 }
@@ -2007,7 +2017,7 @@ h3 {
   justify-content: center;
   gap: 6px;
   background: rgba(51, 38, 29, 0.46);
-  color: #fff8ee;
+  color: #fffdf8;
   text-align: center;
   font-size: 13px;
 }
@@ -3098,12 +3108,67 @@ h3 {
   }
 }
 
-/* Compact heights: the home screen may scroll rather than clip. */
-@media (max-height: 680px) {
+/* ---------- 高度适配 ----------
+ * 窗口高度会随屏幕变小（见 lib.rs 的 fit_window_to_work_area），
+ * 所以首页各元素要跟着收紧，保证搜索框与结果永远够得着。
+ */
+
+/* 中等高度：收掉一部分底部留白，吉祥物小一号 */
+@media (max-height: 860px) {
   .home-page {
-    overflow-y: auto;
-    justify-content: flex-start;
-    padding-top: 12px;
+    padding-bottom: 14vh;
+    gap: 12px;
+  }
+
+  .hero__mascot-stage {
+    width: 232px;
+    height: 232px;
+  }
+
+  .hero__mascot {
+    min-height: 244px;
+  }
+
+  .speech-bubble {
+    top: -54px;
+  }
+}
+
+/* 矮屏：进一步压缩并允许滚动，输入框优先保证可见 */
+@media (max-height: 720px) {
+  .home-page {
+    padding-top: 8px;
+    padding-bottom: 6vh;
+    justify-content: safe flex-start;
+    gap: 10px;
+  }
+
+  .hero__mascot-stage {
+    width: 176px;
+    height: 176px;
+  }
+
+  .hero__mascot {
+    min-height: 184px;
+  }
+
+  .speech-bubble {
+    top: -42px;
+    padding: 7px 13px;
+    font-size: 13px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 3.2vw, 40px);
+  }
+
+  .hero__sub {
+    margin-top: 10px;
+    font-size: 15px;
+  }
+
+  .hero__tag {
+    margin-bottom: 8px;
   }
 }
 

@@ -16,9 +16,9 @@
         "label": "main",
         "title": "掘掘熊 · DigBear",
         "width": 1240,
-        "height": 900,
-        "minWidth": 980,
-        "minHeight": 700,
+        "height": 800,
+        "minWidth": 640,
+        "minHeight": 440,
         "center": true,
         "resizable": true,
         "fullscreen": false

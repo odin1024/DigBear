@@ -8,6 +8,7 @@
     python scripts/jimeng_gen.py --prompt "..." --out out.png --width 1024 --height 1024
 """
 import argparse
+import base64
 import datetime as dt
 import hashlib
 import hmac
@@ -99,6 +100,12 @@ def _call(action: str, body: dict, ak: str, sk: bytes) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _brief(payload, limit=300):
+    """错误信息截断 —— 完整响应可能含 MB 级 base64，打印出来会淹没终端。"""
+    text = json.dumps(payload, ensure_ascii=False)
+    return text if len(text) <= limit else text[:limit] + " ...(truncated)"
+
+
 def generate(prompt, ak, sk, width, height, seed=None, image_urls=None, timeout=600):
     body = {
         "req_key": REQ_KEY,
@@ -126,12 +133,16 @@ def generate(prompt, ak, sk, width, height, seed=None, image_urls=None, timeout=
         data = q.get("data") or {}
         status = data.get("status")
         if status == "done":
+            # 火山引擎视觉智能：结果既可能放在 binary_data_base64，
+            # 也可能放在 resp_data.image_urls，两处都要认。
+            blobs = data.get("binary_data_base64") or []
             urls = data.get("resp_data", {}).get("image_urls") or []
-            if not urls:
-                raise SystemExit("完成但没有图片: %s" % json.dumps(q, ensure_ascii=False))
-            return urls
+            urls = urls or data.get("image_urls") or []
+            if not blobs and not urls:
+                raise SystemExit("完成但没有图片: %s" % _brief(q))
+            return blobs, urls
         if status in ("failed", "cancel"):
-            raise SystemExit("任务失败: %s" % json.dumps(q, ensure_ascii=False))
+            raise SystemExit("任务失败: %s" % _brief(q))
         print("  status=%s" % status, flush=True)
     raise SystemExit("超时")
 
@@ -162,13 +173,31 @@ def main():
     # 火山引擎视觉智能的 SK 直接用控制台给出的字符串参与签名，不做 base64 解码。
     sk = sk_b64
 
-    urls = generate(args.prompt, ak, sk, args.width, args.height,
-                    seed=args.seed, image_urls=args.image_url)
+    blobs, urls = generate(args.prompt, ak, sk, args.width, args.height,
+                           seed=args.seed, image_urls=args.image_url)
+
+    results = []
+    for i, b64 in enumerate(blobs):
+        dest = args.out if len(blobs) == 1 else "%s-%d%s" % (
+            os.path.splitext(args.out)[0], i + 1, os.path.splitext(args.out)[1])
+        raw = base64.b64decode(b64)
+        os.makedirs(os.path.dirname(os.path.abspath(dest)), exist_ok=True)
+        with open(dest, "wb") as f:
+            f.write(raw)
+        results.append(dest)
+        print("saved %s (%d bytes)" % (dest, len(raw)))
+
     for i, u in enumerate(urls):
-        dest = args.out if len(urls) == 1 else "%s-%d%s" % (
+        if len(blobs) and i < len(blobs):
+            continue
+        dest = args.out if not urls or len(urls) == 1 else "%s-%d%s" % (
             os.path.splitext(args.out)[0], i + 1, os.path.splitext(args.out)[1])
         size = download(u, dest)
+        results.append(dest)
         print("saved %s (%d bytes) <- %s" % (dest, size, u))
+
+    if not results:
+        raise SystemExit("没有拿到任何图片")
 
 
 if __name__ == "__main__":
