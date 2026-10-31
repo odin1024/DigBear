@@ -1,6 +1,6 @@
 [package]
 name = "dig-bear"
-version = "0.3.2"
+version = "0.4.0"
 description = "DigBear - a generic website media crawler and downloader"
 authors = ["DigBear"]
 edition = "2021"

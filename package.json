@@ -1,6 +1,6 @@
 {
   "name": "dig-bear",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.14.0",
@@ -17,6 +17,9 @@
     "build:web": "pnpm --filter @dig-bear/website build",
     "assets": "python scripts/prepare_assets.py",
     "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib",
-    "package:macos": "bash scripts/package_macos.sh"
+    "package:macos": "bash scripts/package_macos.sh",
+    "check-version": "python scripts/check_version.py",
+    "lint:rust": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
+    "lint:commit": "commitlint --from HEAD~1 --to HEAD"
   }
 }

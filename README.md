@@ -92,8 +92,8 @@ pnpm build:desktop:windows  # 产出 NSIS + MSI
 产物：
 
 ```
-apps/desktop/src-tauri/target/release/bundle/nsis/DigBear_0.3.2_x64-setup.exe
-apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.3.2_x64_en-US.msi
+apps/desktop/src-tauri/target/release/bundle/nsis/DigBear_0.4.0_x64-setup.exe
+apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.4.0_x64_en-US.msi
 ```
 
 ### FFmpeg（可选）
@@ -112,6 +112,26 @@ HLS/DASH 下载与音视频合并需要 FFmpeg。应用内
 - 第三方追踪像素（无扩展名的 `<img>`）会被识别为图片，需要手动过滤。
 - `blob:` 流（MSE / 实时 HLS）、iframe 内部资源、closed shadow DOM 抓不到。
 - 脚本在提取之后才设置的背景图抓不到。
+
+## 开发与发布
+
+```bash
+pnpm install
+pnpm test:rust           # Rust 单元测试
+pnpm build               # 前端构建
+pnpm check-version       # 校验 5 处版本号一致
+pnpm build:desktop:windows
+```
+
+| 文档 | 内容 |
+| --- | --- |
+| [`CHANGELOG.md`](./CHANGELOG.md) | 更新日志（Keep a Changelog 格式） |
+| [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) | 开发规范：分支、提交信息、代码风格、测试要求 |
+| [`docs/RELEASES.md`](./docs/RELEASES.md) | 发布规范：版本策略、发布流程、产物要求 |
+| [`docs/ROADMAP.md`](./docs/ROADMAP.md) | 待优化清单 |
+| [`PORTING.md`](./PORTING.md) | 从 macOS 到 Windows 的分析与实施记录 |
+
+提交信息遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)。
 
 ## 致谢
 

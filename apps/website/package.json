@@ -1,7 +1,7 @@
 {
   "name": "@crawl-bear/website",
   "private": true,
-  "version": "0.3.2",
+  "version": "0.4.0",
   "type": "module",
   "description": "CrawlBear marketing site (超级爬爬熊官网)",
   "scripts": {

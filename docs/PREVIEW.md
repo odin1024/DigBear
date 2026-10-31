@@ -78,8 +78,8 @@ pnpm build:desktop:windows
 产物：
 
 ```
-apps/desktop/src-tauri/target/release/bundle/nsis/DigBear_0.3.2_x64-setup.exe
-apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.3.2_x64_en-US.msi
+apps/desktop/src-tauri/target/release/bundle/nsis/DigBear_0.4.0_x64-setup.exe
+apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.4.0_x64_en-US.msi
 ```
 
 详细背景见 [`../PORTING.md`](../PORTING.md)。

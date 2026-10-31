@@ -1,6 +1,6 @@
 # Crawl Bear（超级爬爬熊）项目分析与 Windows 版实施方案
 
-> 上游项目：[xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)（MIT，v0.3.2，2026-10-29 建仓）
+> 上游项目：[xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)（MIT，v0.4.0，2026-10-29 建仓）
 > 本文基于对上游源码的完整通读 + 对 Tauri 2.12.5 / wry 0.57.1 / WebView2 运行时 156 的实测验证。
 > 本仓库是面向 Windows 的移植版（产品名 **掘掘熊 DigBear**）。
 
@@ -320,8 +320,8 @@ pnpm test:rust                      # 跑 Rust 单元测试
 产物位置：
 
 ```
-apps/desktop/src-tauri/target/release/bundle/nsis/DigBear_0.3.2_x64-setup.exe
-apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.3.2_x64_en-US.msi
+apps/desktop/src-tauri/target/release/bundle/nsis/DigBear_0.4.0_x64-setup.exe
+apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.4.0_x64_en-US.msi
 ```
 
 ### 代码签名
