@@ -405,6 +405,19 @@ textarea,
   padding: 0 32px;
 }
 
+/* 文件名模板输入 */
+.template-field {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.template-field__hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* ---------- Shared type ---------- */
 
 h1,

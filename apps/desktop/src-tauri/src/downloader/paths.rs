@@ -211,7 +211,100 @@ fn strip_known_extension(name: &str) -> String {
 
 /// Filename stem: `filename_hint` first, then the percent-decoded URL basename,
 /// then a stable id based fallback.  Always sanitized against path traversal.
-pub fn filename_stem(item: &DownloadItem, url: Option<&Url>) -> String {
+/// 渲染文件名模板。
+///
+/// 支持的占位符：
+/// - `{name}`  原始文件名（默认）
+/// - `{site}`  站点域名
+/// - `{kind}`  媒体类型（image / video / audio / font）
+/// - `{index}` 本批次内的序号，从 1 开始，补零到三位
+/// - `{date}`  下载当天日期（YYYYMMDD）
+///
+/// 模板为空或渲染后为空时回退到 `{name}`。
+pub struct TemplateContext<'a> {
+    pub name: &'a str,
+    pub site: &'a str,
+    pub kind: &'a str,
+    pub index: usize,
+    pub date: &'a str,
+}
+
+pub fn render_template(template: &str, ctx: &TemplateContext) -> String {
+    let rendered = template
+        .replace("{name}", ctx.name)
+        .replace("{site}", ctx.site)
+        .replace("{kind}", ctx.kind)
+        .replace("{index}", &format!("{:03}", ctx.index))
+        .replace("{date}", ctx.date);
+    let cleaned = rendered.trim();
+    if cleaned.is_empty() {
+        ctx.name.to_string()
+    } else {
+        cleaned.to_string()
+    }
+}
+
+/// 今天的日期戳（YYYYMMDD，UTC）。
+///
+/// 用 Howard Hinnant 的 civil_from_days 算法，避免为此引入 chrono 依赖。
+pub fn today_stamp() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let days = (secs / 86_400) as i64;
+    let (year, month, day) = civil_from_days(days);
+    format!("{year:04}{month:02}{day:02}")
+}
+
+fn civil_from_days(days: i64) -> (i64, u32, u32) {
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+/// 媒体类型在文件名模板里的写法。
+pub fn kind_name(kind: MediaKind) -> &'static str {
+    match kind {
+        MediaKind::Image => "image",
+        MediaKind::Video => "video",
+        MediaKind::Audio => "audio",
+        MediaKind::Font => "font",
+        MediaKind::Other => "other",
+    }
+}
+
+/// 按模板生成文件名主干。
+///
+/// 先算出原始主干（去掉媒体扩展名），再套模板，最后统一做文件名消毒。
+pub fn filename_stem_with_template(
+    item: &DownloadItem,
+    url: Option<&Url>,
+    template: &str,
+    index: usize,
+    site: &str,
+    date: &str,
+) -> String {
+    let raw = raw_stem(item, url);
+    let ctx = TemplateContext {
+        name: &raw,
+        site,
+        kind: kind_name(item.kind),
+        index,
+        date,
+    };
+    let rendered = render_template(template, &ctx);
+    naming::sanitize_filename(&rendered, 120)
+}
+
+fn raw_stem(item: &DownloadItem, url: Option<&Url>) -> String {
     let raw = item
         .filename_hint
         .as_deref()
@@ -228,7 +321,13 @@ pub fn filename_stem(item: &DownloadItem, url: Option<&Url>) -> String {
                 .collect();
             if id.is_empty() { "media".to_string() } else { format!("media-{id}") }
         });
-    let stem = strip_known_extension(&raw);
+    strip_known_extension(&raw)
+}
+
+/// 不套模板的主干，仅供测试对照使用。
+#[cfg(test)]
+pub fn filename_stem(item: &DownloadItem, url: Option<&Url>) -> String {
+    let stem = raw_stem(item, url);
     naming::sanitize_filename(&stem, 120)
 }
 
@@ -451,6 +550,48 @@ mod tests {
             Some("clip.webm.part.mp4")
         );
         let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn renders_filename_templates() {
+        let ctx = TemplateContext {
+            name: "cover",
+            site: "example.com",
+            kind: "image",
+            index: 7,
+            date: "20261031",
+        };
+        assert_eq!(render_template("{name}", &ctx), "cover");
+        assert_eq!(render_template("{site}-{name}", &ctx), "example.com-cover");
+        assert_eq!(
+            render_template("{site}_{kind}_{index}_{name}", &ctx),
+            "example.com_image_007_cover"
+        );
+        assert_eq!(
+            render_template("{date}-{name}", &ctx),
+            "20261031-cover"
+        );
+    }
+
+    #[test]
+    fn empty_template_falls_back_to_name() {
+        let ctx = TemplateContext {
+            name: "cover",
+            site: "example.com",
+            kind: "image",
+            index: 1,
+            date: "20261031",
+        };
+        assert_eq!(render_template("", &ctx), "cover");
+        assert_eq!(render_template("   ", &ctx), "cover");
+    }
+
+    #[test]
+    fn converts_epoch_days_to_calendar_dates() {
+        assert_eq!(civil_from_days(0), (1970, 1, 1));
+        assert_eq!(civil_from_days(19_723), (2024, 1, 1));
+        assert_eq!(civil_from_days(20_727), (2026, 10, 1));
+        assert_eq!(civil_from_days(20_710), (2026, 9, 14));
     }
 
     #[test]

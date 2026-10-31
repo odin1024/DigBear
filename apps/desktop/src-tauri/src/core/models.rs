@@ -97,6 +97,9 @@ pub struct AppSettings {
     /// UI theme: lantern | forest | night.
     #[serde(default = "default_theme")]
     pub theme: String,
+    /// 文件名模板，支持 {name} {site} {kind} {index} {date}。
+    #[serde(default = "default_filename_template")]
+    pub filename_template: String,
 }
 
 fn default_language() -> String {
@@ -109,6 +112,10 @@ fn default_retry_count() -> u8 {
 
 fn default_theme() -> String {
     "lantern".to_string()
+}
+
+fn default_filename_template() -> String {
+    "{name}".to_string()
 }
 
 /// Where downloads land when the user has not picked a folder yet.
@@ -145,6 +152,7 @@ impl AppSettings {
             language: default_language(),
             retry_count: default_retry_count(),
             theme: default_theme(),
+            filename_template: default_filename_template(),
         }
     }
 

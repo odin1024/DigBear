@@ -45,6 +45,9 @@ pub async fn download_batch(
 
     let total = request.items.len();
     let concurrency = usize::from(settings.concurrency.clamp(1, 5));
+    let filename_template = settings.filename_template.clone();
+    let site = crate::core::url::host_label(&page_url);
+    let date = paths::today_stamp();
     let planner = Arc::new(PathPlanner::new(folder.clone()));
     let page_url_label = page_url.to_string();
 
@@ -58,7 +61,7 @@ pub async fn download_batch(
         canceled: false,
     };
     let mut tasks: JoinSet<ItemOutcome> = JoinSet::new();
-    let mut items = request.items.into_iter();
+    let mut items = request.items.into_iter().enumerate();
     let mut completed = 0usize;
     let mut canceled = false;
 
@@ -73,11 +76,18 @@ pub async fn download_batch(
                 summary.canceled = true;
                 break;
             }
-            let Some(item) = items.next() else {
+            let Some((index, item)) = items.next() else {
                 break;
             };
             let item_url = Url::parse(&item.url).ok();
-            let stem = paths::filename_stem(&item, item_url.as_ref());
+            let stem = paths::filename_stem_with_template(
+                &item,
+                item_url.as_ref(),
+                &filename_template,
+                index + 1,
+                &site,
+                &date,
+            );
             let ext = paths::planned_extension(item_url.as_ref(), item.kind);
             let target = planner.reserve(&stem, &ext);
             let planned_name = target

@@ -66,6 +66,8 @@ export interface AppSettings {
   retry_count: number;
   /** Theme name: lantern | forest | night. */
   theme: string;
+  /** 文件名模板，支持 {name} {site} {kind} {index} {date}。 */
+  filename_template: string;
 }
 
 export interface DownloadFile {

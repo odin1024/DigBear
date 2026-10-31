@@ -317,6 +317,27 @@ export function SettingsView({
 
             <div className="setting-block setting-block--row">
               <div className="setting-block__label">
+                <span>{t("文件名模板", "File name template")}</span>
+              </div>
+              <div className="template-field">
+                <Input
+                  className="rb-input"
+                  value={draft.filename_template}
+                  placeholder="{name}"
+                  onChange={(event) => update({ filename_template: event.target.value })}
+                  aria-label={t("文件名模板", "File name template")}
+                />
+                <p className="template-field__hint">
+                  {t(
+                    "可用占位符：{name} {site} {kind} {index} {date}",
+                    "Placeholders: {name} {site} {kind} {index} {date}"
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="setting-block setting-block--row">
+              <div className="setting-block__label">
                 <span>{t("失败重试", "Retry failed downloads")}</span>
               </div>
               <div className="number-field">
