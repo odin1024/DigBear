@@ -1150,3 +1150,35 @@ h2 {
     order: -1;
   }
 }
+
+/* 仓库地址还没公布时的占位按钮 */
+.repo-pending {
+  position: relative;
+  cursor: default;
+  opacity: 0.72;
+  text-decoration: none;
+}
+
+.repo-pending__tag {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--ink-soft, #584a6d);
+  color: var(--paper, #faf5ec);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.nav__github.repo-pending .repo-pending__tag {
+  display: none;
+}
+
+/* 占位按钮不可点，hover 不要有位移反馈 */
+.repo-pending:hover,
+a.repo-pending:hover {
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { loadLocale, setLocale, t, type Locale } from "./i18n";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRightIcon,
@@ -17,10 +17,40 @@ import {
 } from "./components/Icons";
 import { SmartImage } from "./components/SmartImage";
 
-const REPO = "https://github.com/your-org/dig-bear";
-const RELEASES = `${REPO}/releases`;
-const README = `${REPO}#readme`;
-const INSTALL = `${REPO}/blob/main/docs/PREVIEW.md`;
+/**
+ * 源码仓库地址。发布时填成实际地址（例如 https://github.com/<org>/dig-bear）。
+ *
+ * 留空时，所有指向 GitHub 的入口都会变成「待公布」的占位按钮，
+ * 不会把用户带到错误的仓库去。
+ */
+const REPO = "";
+
+/** 仓库地址还没公布时，把链接渲染成不可点的占位。 */
+function RepoLink({
+  className,
+  path = "",
+  children,
+}: {
+  className?: string;
+  path?: string;
+  children: ReactNode;
+}) {
+  if (!REPO) {
+    return (
+      <span className={`${className ?? ""} repo-pending`}>
+        {children}
+        <span className="repo-pending__tag">
+          {t("仓库地址待公布", "Repo coming soon")}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <a className={className} href={`${REPO}${path}`} target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  );
+}
 
 type Feature = {
   icon: ComponentType<{ size?: number }>;
@@ -88,6 +118,12 @@ const SHOTS = [
     label: ["首页", "Home"],
     src: asset("/assets/shots/home.webp"),
     caption: ["一个输入框，一屏就够", "One input, one screen"],
+  },
+  {
+    id: "results",
+    label: ["结果", "Results"],
+    src: asset("/assets/shots/results.webp"),
+    caption: ["按类型筛选、排序、预览，勾选后一次性收进采集袋", "Filter by kind, sort, preview, then save the picks in one go"],
   },
   {
     id: "settings",
@@ -167,10 +203,10 @@ export default function App() {
         >
           {locale === "zh" ? "EN" : "中文"}
         </button>
-        <a className="nav__github" href={REPO} target="_blank" rel="noreferrer">
+        <RepoLink className="nav__github">
           <GithubIcon size={18} />
           GitHub
-        </a>
+        </RepoLink>
       </header>
 
       <main id="top">
@@ -197,14 +233,14 @@ export default function App() {
               )}
             </p>
             <div className="hero__actions">
-              <a className="btn btn--primary" href={RELEASES} target="_blank" rel="noreferrer">
+              <RepoLink className="btn btn--primary" path="/releases">
                 <DownloadIcon size={18} />
                 {t("下载 Windows 版", "Download for Windows")}
-              </a>
-              <a className="btn" href={REPO} target="_blank" rel="noreferrer">
+              </RepoLink>
+              <RepoLink className="btn">
                 <GithubIcon size={17} />
                 {t("查看源码", "View source")}
-              </a>
+              </RepoLink>
             </div>
           </motion.div>
 
@@ -347,14 +383,9 @@ export default function App() {
               <li>
                 <CheckIcon size={15} />
                 {t("遇到难抓取的站点？", "Found a site we cannot parse?")}{" "}
-                <a
-                  className="checks__link"
-                  href={`${REPO}/issues`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <RepoLink className="checks__link" path="/issues">
                   {t("在 GitHub 提 Issue", "Open a GitHub Issue")}
-                </a>
+                </RepoLink>
                 {t("，我们会逐步支持。", " and we will add support over time.")}
               </li>
             </ul>
@@ -440,10 +471,10 @@ export default function App() {
                 <br />
                 {t("不是网页套壳。", "not a website in a wrapper.")}
               </h2>
-              <a className="btn btn--light" href={`${REPO}/tree/main/docs`} target="_blank" rel="noreferrer">
+              <RepoLink className="btn btn--light" path="/tree/main/docs">
                 {t("阅读架构文档", "Read the architecture docs")}
                 <ArrowRightIcon size={16} />
-              </a>
+              </RepoLink>
             </div>
             <ul className="tech__chips">
               {TECH.map((chip) => (
@@ -507,10 +538,10 @@ export default function App() {
                 )}
               </p>
               <div className="install__actions">
-                <a className="btn" href={INSTALL} target="_blank" rel="noreferrer">
+                <RepoLink className="btn" path="/blob/main/docs/PREVIEW.md">
                   {t("查看完整安装说明", "Read the full install guide")}
                   <ArrowRightIcon size={16} />
-                </a>
+                </RepoLink>
               </div>
             </div>
             <div className="install__art">
@@ -535,7 +566,7 @@ export default function App() {
               <h2>{t("准备好翻找了吗？", "Ready to start digging?")}</h2>
               <p>
                 {t("从 GitHub 获取源码或下载 Windows 版本。如果 Releases 暂时没有安装包，可以按 ", "Get the source on GitHub or download the Windows build. If Releases has no package yet, follow the ")}
-                <a href={README} target="_blank" rel="noreferrer">README</a>
+                <RepoLink path="#readme">README</RepoLink>
                 {t(" 的步骤自行构建。", " steps to build it yourself.")}
               </p>
               <p className="download__note">
@@ -543,14 +574,14 @@ export default function App() {
                 <a href="#install">{t("安装步骤与隐私说明", "installation and privacy guide")}</a>{t("。", ".")}
               </p>
               <div className="download__actions">
-                <a className="btn btn--primary" href={RELEASES} target="_blank" rel="noreferrer">
+                <RepoLink className="btn btn--primary" path="/releases">
                   <DownloadIcon size={18} />
                   {t("前往 GitHub Releases", "Go to GitHub Releases")}
-                </a>
-                <a className="btn" href={REPO} target="_blank" rel="noreferrer">
+                </RepoLink>
+                <RepoLink className="btn">
                   <GithubIcon size={17} />
                   {t("给个 Star", "Star on GitHub")}
-                </a>
+                </RepoLink>
               </div>
             </div>
           </div>
@@ -566,12 +597,8 @@ export default function App() {
           </div>
         </div>
         <nav className="footer__links" aria-label={t("页脚链接", "Footer links")}>
-          <a href={REPO} target="_blank" rel="noreferrer">
-            {t("源码", "Source")}
-          </a>
-          <a href={`${REPO}/blob/main/LICENSE`} target="_blank" rel="noreferrer">
-            MIT License
-          </a>
+          <RepoLink path="">{t("源码", "Source")}</RepoLink>
+          <RepoLink path="/blob/main/LICENSE">MIT License</RepoLink>
           <a href="#features">{t("功能", "Features")}</a>
           <a href="#download">{t("下载", "Download")}</a>
         </nav>
