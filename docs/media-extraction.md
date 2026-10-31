@@ -1,3 +1,5 @@
+> **来源说明** — 网页媒体提取的研究与实测记录。**本文档继承自上游** [xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)。其结论（WebKit 与 Chromium 采集结果高度一致）在 Windows 移植版中仍然成立并已实测验证。
+
 # 通用网页媒体提取（CrawlBear 抓取内核）
 
 > 目标：用户输入任意站点 URL 后，CrawlBear 在隐藏 WKWebView 中打开页面，提取页面上可下载的图片 / 视频 / 音频 / 字体资源，供用户筛选和保存。

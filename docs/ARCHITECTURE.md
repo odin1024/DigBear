@@ -1,3 +1,5 @@
+> **来源说明** — CrawlBear 的架构设计文档。**本文档继承自上游** [xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)，其中的分层与模块划分在 Windows 移植版中继续沿用；平台差异的补充说明见 [`../PORTING.md`](../PORTING.md)。
+
 > 仓库使用 pnpm workspace：桌面应用位于 `apps/desktop`，官网位于 `apps/website`。本文档中的 `src/`、`src-tauri/` 等路径均相对 `apps/desktop/`。
 # CrawlBear 架构设计
 

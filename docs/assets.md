@@ -1,3 +1,5 @@
+> **来源说明** — 素材生成约定。**本文档继承自上游** [xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)；当前图标与吉祥物的生成流程见 [`../scripts/`](../scripts)。
+
 # CrawlBear 图像资产清单 · 生图提示词
 
 > 配套文档：[design.md](./design.md) §3 / §6.6 / §9

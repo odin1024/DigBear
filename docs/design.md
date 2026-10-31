@@ -1,3 +1,5 @@
+> **来源说明** — 界面与视觉的设计约定。**本文档继承自上游** [xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)。掘掘熊已换用自有的图标与吉祥物资产，色板仍沿用。
+
 # CrawlBear 设计规范 · 超级爬爬熊
 
 > 版本 v1.0 · 2026-10-28

@@ -1,3 +1,5 @@
+> **来源说明** — 前后端接口契约。**本文档继承自上游** [xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)，命令集在 Windows 移植版中保持一致。
+
 # CrawlBear 前后端契约 v1
 
 所有命令通过 `@tauri-apps/api/core` 的 `invoke` 调用。错误统一为 Tauri reject：

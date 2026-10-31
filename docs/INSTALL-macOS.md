@@ -1,3 +1,5 @@
+> **来源说明** — **本文档继承自上游** [xw-meow/crawl-bear](https://github.com/xw-meow/crawl-bear)，只适用于 macOS 版本。Windows 版请看 [`PREVIEW.md`](./PREVIEW.md) 与 [`../README.md`](../README.md)。
+
 # macOS 安装与首次打开
 
 CrawlBear 没有购买 Apple Developer Program（$99/年），因此发布包没有经过 Apple 公证。macOS 的 Gatekeeper 会拦截首次打开，这是预期的，不代表文件真的损坏。
