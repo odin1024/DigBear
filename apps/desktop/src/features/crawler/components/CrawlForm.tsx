@@ -3,17 +3,20 @@ import {
   ArrowRightIcon,
   CloseIcon,
   GlobeIcon,
+  PlusIcon,
 } from "../../../shared/components/Icons";
 import { t } from "../../../shared/i18n";
 
 interface CrawlFormProps {
   url: string;
   crawling: boolean;
+  /** 把当前输入的网址加入批量队列。 */
+  onQueue: () => void;
   onUrlChange: (value: string) => void;
   onCrawl: () => void;
 }
 
-export function CrawlForm({ url, crawling, onUrlChange, onCrawl }: CrawlFormProps) {
+export function CrawlForm({ url, crawling, onQueue, onUrlChange, onCrawl }: CrawlFormProps) {
   return (
     <form
       className="search-pill"
@@ -42,14 +45,25 @@ export function CrawlForm({ url, crawling, onUrlChange, onCrawl }: CrawlFormProp
         onChange={(event) => onUrlChange(event.target.value)}
       />
       {url && !crawling && (
-        <button
-          type="button"
-          className="search-pill__clear"
-          aria-label={t("清空地址", "Clear URL")}
-          onClick={() => onUrlChange("")}
-        >
-          <CloseIcon size={15} />
-        </button>
+        <>
+          <button
+            type="button"
+            className="search-pill__queue"
+            aria-label={t("加入队列", "Add to queue")}
+            title={t("加入队列，批量翻找", "Add to the queue for a batch run")}
+            onClick={onQueue}
+          >
+            <PlusIcon size={15} />
+          </button>
+          <button
+            type="button"
+            className="search-pill__clear"
+            aria-label={t("清空地址", "Clear URL")}
+            onClick={() => onUrlChange("")}
+          >
+            <CloseIcon size={15} />
+          </button>
+        </>
       )}
       <Button
         type="primary"

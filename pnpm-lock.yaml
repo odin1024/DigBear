@@ -233,6 +233,10 @@ importers:
       vite:
         specifier: ^6.0.3
         version: 6.4.5(@types/node@26.6.5)(jiti@2.7.0)(less@4.9.1(supports-color@8.1.1))(lightningcss@1.33.0)(sass-embedded@1.105.1)(sass@1.106.1)(stylus@0.64.0(supports-color@8.1.1))(sugarss@5.0.1(postcss@8.5.32))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+    optionalDependencies:
+      '@tauri-apps/cli-win32-x64-msvc':
+        specifier: 2.12.2
+        version: 2.12.2
 
   apps/website:
     dependencies:
@@ -1042,6 +1046,12 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [glibc]
+
+  '@tauri-apps/cli-win32-x64-msvc@2.12.2':
+    resolution: {integrity: sha512-cQXI2ZaZmwBDt0XATCqASVanYizxkEE3ceQVlVHXaQ51HzsQUWA04c9Nz7LrrY2lgAu3jFMyat+8Yz3Z2R2qBA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
 
   '@tauri-apps/cli@2.12.2':
     resolution: {integrity: sha1-xtlfL582CPQ3cTJP6Ej8NmzjqKM=}
@@ -2696,6 +2706,9 @@ snapshots:
     optional: true
 
   '@tauri-apps/cli-linux-x64-gnu@2.12.2':
+    optional: true
+
+  '@tauri-apps/cli-win32-x64-msvc@2.12.2':
     optional: true
 
   '@tauri-apps/cli@2.12.2':

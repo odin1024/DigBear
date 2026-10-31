@@ -29,7 +29,7 @@ import {
 } from "../../shared/format";
 import { Mascot, type MascotMood } from "../../shared/components/Mascot";
 import { t } from "../../shared/i18n";
-import { ArrowLeftIcon, SparkIcon } from "../../shared/components/Icons";
+import { ArrowLeftIcon, CloseIcon, SparkIcon } from "../../shared/components/Icons";
 import { CrawlForm } from "./components/CrawlForm";
 import { CrawlProgressPanel } from "./components/CrawlProgressPanel";
 import { KindFilter } from "./components/KindFilter";
@@ -132,6 +132,8 @@ export function CrawlerView({
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [summary, setSummary] = useState<DownloadSummary | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>("default");
+  /** 批量翻找队列里的网址。 */
+  const [queue, setQueue] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
@@ -294,8 +296,80 @@ export function CrawlerView({
   const mascotMood: MascotMood = crawling ? "crawl" : "hero";
   const bubbleLine = crawling ? t("我这就去翻…", "Let me take a look…") : t("今天想翻哪个网站？", "Which site should I crawl today?");
 
+  /* 把当前输入的网址加入队列。 */
+  const handleQueue = () => {
+    const raw = url.trim();
+    if (!raw) return;
+    const normalized = normalizeHttpUrl(raw) ?? normalizeHttpUrl(extractUrl(raw));
+    if (!normalized) {
+      message.error(t("这个网址打不开，换一个试试。", "This URL cannot be opened. Try another one."));
+      return;
+    }
+    setQueue((previous) =>
+      previous.includes(normalized) ? previous : [...previous, normalized]
+    );
+    setUrl("");
+    message.success(t("已加入队列。", "Added to the queue."));
+  };
+
+  const removeFromQueue = (target: string) => {
+    setQueue((previous) => previous.filter((item) => item !== target));
+  };
+
+  /* 依次翻找队列里的网址，把结果合并。 */
+  const runQueue = async () => {
+    if (queue.length === 0) return;
+    const collected: CrawlResult[] = [];
+    for (let index = 0; index < queue.length; index += 1) {
+      const target = queue[index];
+      setCrawlProgress({
+        stage: "loading",
+        message: t(`正在翻找 ${index + 1}/${queue.length}`, `Crawling ${index + 1}/${queue.length}`),
+        percent: Math.round((index / queue.length) * 100),
+      });
+      try {
+        const next = await api.crawl({
+          url: target,
+          kinds: MEDIA_KINDS,
+          scroll: settings?.scroll_page ?? true,
+          max_items: settings?.max_items ?? 500,
+        });
+        collected.push(next);
+      } catch (error) {
+        message.error(t(`${target} 翻找失败`, `${target} failed`), 6);
+      }
+    }
+    if (collected.length === 0) {
+      setCrawlProgress(null);
+      return;
+    }
+    const resources = collected.flatMap((item) => item.resources);
+    const counts = { image: 0, video: 0, audio: 0, font: 0, other: 0 } as Record<MediaKind, number>;
+    for (const resource of resources) {
+      counts[resource.kind] = (counts[resource.kind] ?? 0) + 1;
+    }
+    const merged: CrawlResult = {
+      ...collected[0],
+      resources,
+      counts,
+      warnings: collected.flatMap((item) => item.warnings),
+    };
+    setResult(merged);
+    setActiveKinds(defaultKindSet(settings));
+    setPage("results");
+    setCrawlProgress(null);
+    message.success(
+      t(`队列翻完了，一共 ${resources.length} 件。`, `Queue done: ${resources.length} items in total.`)
+    );
+  };
+
   const handleCrawl = async (target?: string) => {
     if (crawling) return;
+    // 首页点「开始翻找」时，队列优先。
+    if (!target && queue.length > 0) {
+      await runQueue();
+      return;
+    }
     const raw = (target ?? url).trim();
     const normalized = normalizeHttpUrl(raw) ?? normalizeHttpUrl(extractUrl(raw));
     if (!normalized) {
@@ -638,9 +712,43 @@ export function CrawlerView({
               <CrawlForm
                 url={url}
                 crawling={crawling}
+                onQueue={handleQueue}
                 onUrlChange={setUrl}
                 onCrawl={handleCrawl}
               />
+              {queue.length > 0 && (
+                <div className="crawl-queue" aria-live="polite">
+                  <div className="crawl-queue__head">
+                    <span>
+                      {t(
+                        `队列里有 ${queue.length} 个网址`,
+                        `${queue.length} URLs in the queue`
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      className="rb-text-link"
+                      onClick={() => setQueue([])}
+                    >
+                      {t("清空队列", "Clear queue")}
+                    </button>
+                  </div>
+                  <ul className="crawl-queue__list">
+                    {queue.map((item) => (
+                      <li key={item} className="crawl-queue__item">
+                        <span title={item}>{item}</span>
+                        <button
+                          type="button"
+                          aria-label={t("移出队列", "Remove from queue")}
+                          onClick={() => removeFromQueue(item)}
+                        >
+                          <CloseIcon size={13} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <AnimatePresence initial={false}>
                 {crawling && (
                   <motion.div
