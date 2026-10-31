@@ -1,0 +1,22 @@
+{
+  "name": "dig-bear",
+  "version": "0.3.2",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:desktop": "pnpm --filter @dig-bear/desktop tauri dev",
+    "dev:web": "pnpm --filter @dig-bear/website dev",
+    "build": "pnpm -r build",
+    "build:desktop": "pnpm --filter @dig-bear/desktop exec tauri build",
+    "build:desktop:windows": "pnpm --filter @dig-bear/desktop exec tauri build --bundles nsis,msi",
+    "build:desktop:macos": "pnpm --filter @dig-bear/desktop exec tauri build --bundles app",
+    "build:web": "pnpm --filter @dig-bear/website build",
+    "assets": "python scripts/prepare_assets.py",
+    "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib",
+    "package:macos": "bash scripts/package_macos.sh"
+  }
+}

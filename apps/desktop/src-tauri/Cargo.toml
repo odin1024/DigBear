@@ -1,0 +1,31 @@
+[package]
+name = "dig-bear"
+version = "0.3.2"
+description = "DigBear - a generic website media crawler and downloader"
+authors = ["DigBear"]
+edition = "2021"
+
+[lib]
+name = "dig_bear_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = "2"
+regex = "1"
+tokio = { version = "1", features = ["time", "sync", "rt", "process", "fs", "io-util", "macros"] }
+percent-encoding = "2"
+reqwest = { version = "0.12", default-features = false, features = ["native-tls", "gzip", "json"] }
+flate2 = "1"
+async-trait = "0.1"
+tauri-plugin-dialog = "2"
+dirs = "7"
+
+# Windows resolves the system proxy from the WinINET registry hive.
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"

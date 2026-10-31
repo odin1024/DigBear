@@ -1,0 +1,7 @@
+#!/bin/bash
+APP="/Applications/CrawlBear.app"
+# The package itself may be quarantined; clear the app and repair the ad-hoc
+# signature so the installed copy launches without a "damaged" warning.
+xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
+codesign --force --deep --sign - "$APP" 2>/dev/null || true
+exit 0
