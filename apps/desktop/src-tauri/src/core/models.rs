@@ -91,10 +91,17 @@ pub struct AppSettings {
     pub sites: Vec<LoginSite>,
     #[serde(default = "default_language")]
     pub language: String,
+    /// How many times a failed download is retried before giving up.
+    #[serde(default = "default_retry_count")]
+    pub retry_count: u8,
 }
 
 fn default_language() -> String {
     "auto".to_string()
+}
+
+fn default_retry_count() -> u8 {
+    2
 }
 
 /// Where downloads land when the user has not picked a folder yet.
@@ -129,12 +136,14 @@ impl AppSettings {
             max_items: 500,
             sites: Vec::new(),
             language: default_language(),
+            retry_count: default_retry_count(),
         }
     }
 
     pub fn normalized(mut self) -> Self {
         self.concurrency = self.concurrency.clamp(1, 5);
         self.max_items = self.max_items.clamp(50, 2000);
+        self.retry_count = self.retry_count.min(5);
         if self.download_dir.trim().is_empty() {
             self.download_dir = Self::defaults().download_dir;
         }

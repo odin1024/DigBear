@@ -117,7 +117,8 @@ pub async fn download_batch(
                 stem,
                 progress,
             };
-            tasks.spawn(async move { run_item(context).await });
+            let retries = settings.retry_count;
+            tasks.spawn(async move { run_item_with_retry(context, retries).await });
         }
 
         if canceled {
@@ -172,6 +173,7 @@ pub async fn download_batch(
 
 type ProgressSink = Arc<dyn Fn(u64, Option<u64>) + Send + Sync>;
 
+#[derive(Clone)]
 struct ItemContext {
     app: AppHandle,
     item: DownloadItem,
@@ -197,6 +199,48 @@ fn failure(item: &DownloadItem, message: impl Into<String>) -> ItemOutcome {
 
 /// Download one item into its planned target.  Every failure path keeps the
 /// batch alive; the error is reported on the item event instead.
+/// Cheap, deterministic checks that will never succeed on a retry.
+///
+/// A malformed URL or an unsupported scheme is the caller's mistake, so we
+/// bail out before spending any network time on it.
+fn validate_item(item: &DownloadItem) -> Result<(), String> {
+    let parsed = Url::parse(&item.url).map_err(|_| "链接格式不正确。")?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return Err("只支持 http/https 链接。".to_string());
+    }
+    Ok(())
+}
+
+/// Download one item, retrying transient failures with exponential backoff.
+///
+/// Most failures here are momentary — a reset connection, a throttled CDN, a
+/// signed URL that expired mid-flight. Retrying a couple of times turns those
+/// into successes; the backoff keeps us from hammering a struggling server.
+async fn run_item_with_retry(context: ItemContext, retries: u8) -> ItemOutcome {
+    if let Err(message) = validate_item(&context.item) {
+        return failure(&context.item, message);
+    }
+    let mut attempt = 0u8;
+    loop {
+        let outcome = run_item(context.clone()).await;
+        match &outcome {
+            ItemOutcome::Success(_) => return outcome,
+            ItemOutcome::Failure(failure) => {
+                if attempt >= retries {
+                    return outcome;
+                }
+                attempt += 1;
+                let delay = std::time::Duration::from_millis(400u64 << (attempt - 1).min(4));
+                eprintln!(
+                    "[digbear] 下载失败，第 {attempt}/{retries} 次重试（{}）: {}",
+                    context.item.url, failure.error
+                );
+                tokio::time::sleep(delay).await;
+            }
+        }
+    }
+}
+
 async fn run_item(context: ItemContext) -> ItemOutcome {
     let ItemContext { app, item, page_url, planner, target, stem, progress } = context;
 
@@ -204,9 +248,6 @@ async fn run_item(context: ItemContext) -> ItemOutcome {
         Ok(url) => url,
         Err(_) => return failure(&item, "链接格式不正确。"),
     };
-    if !matches!(parsed_url.scheme(), "http" | "https") {
-        return failure(&item, "只支持 http/https 链接。");
-    }
 
     if paths::is_page_video_url(&item.url) {
         return run_page_video(&app, &item, &planner, &target, &stem, &progress).await;
@@ -412,4 +453,39 @@ fn emit_progress(
         current_total: None,
     };
     let _ = app.emit("download-progress", payload);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::models::MediaKind;
+
+    fn item(url: &str) -> DownloadItem {
+        DownloadItem {
+            id: "x".to_string(),
+            url: url.to_string(),
+            kind: MediaKind::Image,
+            filename_hint: None,
+        }
+    }
+
+    #[test]
+    fn rejects_malformed_urls() {
+        assert!(validate_item(&item("not a url")).is_err());
+        assert!(validate_item(&item("")).is_err());
+    }
+
+    #[test]
+    fn rejects_non_http_schemes() {
+        assert!(validate_item(&item("ftp://example.com/a.png")).is_err());
+        assert!(validate_item(&item("file:///C:/secret.png")).is_err());
+        assert!(validate_item(&item("javascript:alert(1)")).is_err());
+        assert!(validate_item(&item("data:image/png;base64,AAAA")).is_err());
+    }
+
+    #[test]
+    fn accepts_http_and_https() {
+        assert!(validate_item(&item("https://example.com/a.png")).is_ok());
+        assert!(validate_item(&item("http://example.com/a.png")).is_ok());
+    }
 }

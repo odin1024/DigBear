@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { App as AntApp, Button, Checkbox } from "antd";
+import { App as AntApp, Button, Checkbox, Select } from "antd";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { listen } from "@tauri-apps/api/event";
 import {
@@ -30,6 +30,21 @@ import { ResourceCard, type ResourceStatus } from "./components/ResourceCard";
 import { ResourcePreviewModal } from "./components/ResourcePreviewModal";
 import { DownloadBar } from "./components/DownloadBar";
 import { PawConfetti } from "../../shared/components/PawConfetti";
+
+/** 结果排序方式。 */
+type SortBy = "default" | "resolution" | "duration" | "name";
+
+const SORT_OPTIONS: Array<{ value: SortBy; label: string }> = [
+  { value: "default", label: "默认顺序" },
+  { value: "resolution", label: "分辨率" },
+  { value: "duration", label: "时长" },
+  { value: "name", label: "文件名" },
+];
+
+/** 像素数，用于按分辨率排序。 */
+function pixelCount(resource: MediaResource): number {
+  return (resource.width ?? 0) * (resource.height ?? 0);
+}
 
 interface CrawlerViewProps {
   settings: AppSettings | null;
@@ -81,6 +96,9 @@ export function CrawlerView({
   const [canceling, setCanceling] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [summary, setSummary] = useState<DownloadSummary | null>(null);
+  const [sortBy, setSortBy] = useState<SortBy>("default");
+  const [dragActive, setDragActive] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const resultsScrollRef = useRef<HTMLDivElement>(null);
 
@@ -165,10 +183,23 @@ export function CrawlerView({
     [result]
   );
 
-  const visibleResources = useMemo(
-    () => (result?.resources ?? []).filter((resource) => activeKinds.has(resource.kind)),
-    [result, activeKinds]
-  );
+  const visibleResources = useMemo(() => {
+    const list = (result?.resources ?? []).filter((resource) =>
+      activeKinds.has(resource.kind)
+    );
+    if (sortBy === "default") return list;
+    const sorted = [...list];
+    if (sortBy === "resolution") {
+      sorted.sort((a, b) => pixelCount(b) - pixelCount(a));
+    } else if (sortBy === "duration") {
+      sorted.sort((a, b) => (b.duration ?? 0) - (a.duration ?? 0));
+    } else {
+      sorted.sort((a, b) =>
+        (a.filename_hint ?? a.url).localeCompare(b.filename_hint ?? b.url, "zh")
+      );
+    }
+    return sorted;
+  }, [result, activeKinds, sortBy]);
 
   const selectedResources = useMemo(
     () => (result?.resources ?? []).filter((resource) => selected.has(resource.id)),
@@ -185,9 +216,10 @@ export function CrawlerView({
   const mascotMood: MascotMood = crawling ? "crawl" : "hero";
   const bubbleLine = crawling ? t("我这就去翻…", "Let me take a look…") : t("今天想翻哪个网站？", "Which site should I crawl today?");
 
-  const handleCrawl = async () => {
+  const handleCrawl = async (target?: string) => {
     if (crawling) return;
-    const normalized = normalizeHttpUrl(url.trim()) ?? normalizeHttpUrl(extractUrl(url.trim()));
+    const raw = (target ?? url).trim();
+    const normalized = normalizeHttpUrl(raw) ?? normalizeHttpUrl(extractUrl(raw));
     if (!normalized) {
       message.error(t("这个网址打不开，换一个试试。", "This URL cannot be opened. Try another one."));
       return;
@@ -303,6 +335,127 @@ export function CrawlerView({
     }
   };
 
+  /* 拖拽链接：把浏览器地址栏的链接拖进窗口即可翻找。 */
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setDragActive(false);
+    const transfer = event.dataTransfer;
+    const raw =
+      transfer.getData("text/uri-list") || transfer.getData("text/plain") || "";
+    const found = normalizeHttpUrl(raw.trim()) ?? normalizeHttpUrl(extractUrl(raw.trim()));
+    if (!found) {
+      message.error(t("这里没有可用的网址。", "No usable URL in the drop."));
+      return;
+    }
+    setUrl(found);
+    setPage("home");
+    void handleCrawl(found);
+  };
+
+  /* 重新下载失败的文件。 */
+  const handleRetryFailed = async () => {
+    if (!result || !summary || summary.failures.length === 0 || downloading || retrying) return;
+    const failedIds = new Set(summary.failures.map((failure) => failure.id));
+    const items = (result.resources ?? []).filter((resource) => failedIds.has(resource.id));
+    if (items.length === 0) return;
+
+    setRetrying(true);
+    setDownloading(true);
+    setDownloadProgress({
+      completed: 0,
+      total: items.length,
+      current_id: null,
+      current_name: null,
+    });
+    try {
+      const next = await api.download({
+        page_url: result.final_url || result.page_url,
+        items: items.map((resource) => ({
+          id: resource.id,
+          url: resource.url,
+          kind: resource.kind,
+          filename_hint: resource.filename_hint,
+        })),
+      });
+      setSummary((previous) => {
+        if (!previous) return next;
+        const retried = new Set(items.map((item) => item.id));
+        const files = previous.files.filter((file) => !retried.has(file.id));
+        const failures = previous.failures.filter((failure) => !retried.has(failure.id));
+        return {
+          ...previous,
+          files: [...files, ...next.files],
+          failures: [...failures, ...next.failures],
+          success_count: files.length + next.files.length,
+          failed_count: failures.length + next.failures.length,
+          total: files.length + failures.length + next.files.length + next.failures.length,
+        };
+      });
+      setStatuses((previous) => ({ ...previous, ...statusesFromSummary(next) }));
+      if (next.failed_count > 0) {
+        message.warning(
+          t(`还是没收到 ${next.failed_count} 件。`, `${next.failed_count} items still failed.`)
+        );
+      } else {
+        message.success(t("这次都收到了。", "All retried items are in."));
+      }
+    } catch (error) {
+      message.error(toAppError(error).message);
+    } finally {
+      setRetrying(false);
+      setDownloading(false);
+      setDownloadProgress(null);
+    }
+  };
+
+  /* 键盘快捷键。用 ref 保存最新回调，避免每次状态变化都重绑事件。 */
+  const shortcutRef = useRef<(event: KeyboardEvent) => void>(() => {});
+  shortcutRef.current = (event: KeyboardEvent) => {
+    const mod = event.ctrlKey || event.metaKey;
+    const key = event.key.toLowerCase();
+
+    if (mod && key === ",") {
+      event.preventDefault();
+      onOpenSettings();
+      return;
+    }
+    if (mod && key === "a" && page === "results") {
+      event.preventDefault();
+      toggleAllVisible();
+      return;
+    }
+    if (mod && key === "v") {
+      // 焦点不在输入框时，把光标送进去，让粘贴有地方可去。
+      const active = document.activeElement;
+      if (!(active instanceof HTMLInputElement) && !(active instanceof HTMLTextAreaElement)) {
+        const input = document.getElementById("crawlUrl");
+        if (input instanceof HTMLInputElement) {
+          event.preventDefault();
+          input.focus();
+        }
+      }
+      return;
+    }
+    if (key === "escape") {
+      if (downloading) {
+        event.preventDefault();
+        void handleCancel();
+      } else if (page === "results") {
+        event.preventDefault();
+        backHome();
+      } else if (url) {
+        event.preventDefault();
+        setUrl("");
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => shortcutRef.current(event);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const handleReveal = async (path: string) => {
     try {
       await api.revealPath(path);
@@ -315,7 +468,20 @@ export function CrawlerView({
     Boolean(result) && !result?.needs_login && (result?.resources.length ?? 0) > 0;
 
   return (
-    <section className="crawler-view">
+    <section
+      className={`crawler-view${dragActive ? " crawler-view--drag" : ""}`}
+      onDragOver={(event) => {
+        event.preventDefault();
+        setDragActive(true);
+      }}
+      onDragLeave={() => setDragActive(false)}
+      onDrop={handleDrop}
+    >
+      {dragActive && (
+        <div className="drag-hint" aria-hidden="true">
+          {t("松手就翻这里", "Drop to crawl")}
+        </div>
+      )}
       <AnimatePresence mode="wait" initial={false}>
         {page === "home" ? (
           <motion.div
@@ -470,6 +636,17 @@ export function CrawlerView({
                     <>
                       <div className="result-toolbar">
                         <KindFilter counts={counts} active={activeKinds} onChange={setActiveKinds} />
+                        <Select
+                          className="result-toolbar__sort"
+                          size="small"
+                          value={sortBy}
+                          onChange={(value) => setSortBy(value as SortBy)}
+                          options={SORT_OPTIONS.map((option) => ({
+                            value: option.value,
+                            label: t(option.label, option.label),
+                          }))}
+                          aria-label={t("结果排序", "Sort results")}
+                        />
                         <div className="result-toolbar__selection">
                           <Checkbox
                             className="rb-check"
@@ -491,6 +668,43 @@ export function CrawlerView({
                           )}
                         </div>
                       </div>
+
+                      {summary && summary.failures.length > 0 && !downloading && (
+                        <div className="result-failures">
+                          <div className="result-failures__head">
+                            <span>
+                              {t(
+                                `${summary.failures.length} 件没收到`,
+                                `${summary.failures.length} failed`
+                              )}
+                            </span>
+                            <button
+                              type="button"
+                              className="rb-text-link"
+                              disabled={retrying}
+                              onClick={() => void handleRetryFailed()}
+                            >
+                              {retrying ? t("重试中…", "Retrying…") : t("重试全部", "Retry all")}
+                            </button>
+                          </div>
+                          <ul className="result-failures__list">
+                            {summary.failures.slice(0, 5).map((failure) => (
+                              <li key={failure.id}>
+                                <span className="result-failures__url">{failure.url}</span>
+                                <span className="result-failures__error">{failure.error}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {summary.failures.length > 5 && (
+                            <p className="result-failures__more">
+                              {t(
+                                `还有 ${summary.failures.length - 5} 件没列出`,
+                                `${summary.failures.length - 5} more`
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {result.resources.length === 0 ? (
                         <div className="result-empty">

@@ -62,6 +62,8 @@ export interface AppSettings {
   max_items: number;
   sites: LoginSite[];
   language: "auto" | "zh" | "en";
+  /** How many times a failed download is retried. */
+  retry_count: number;
 }
 
 export interface DownloadFile {

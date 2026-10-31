@@ -127,6 +127,7 @@ export function SettingsView({
         ...draft,
         concurrency: Math.min(5, Math.max(1, draft.concurrency)),
         max_items: Math.min(2000, Math.max(50, draft.max_items)),
+        retry_count: Math.min(5, Math.max(0, draft.retry_count)),
       });
       setDraft(cloneSettings(next));
       onSaved(next);
@@ -296,6 +297,26 @@ export function SettingsView({
                 onChange={(checked) => update({ scroll_page: checked })}
                 aria-label={t("自动滚动加载", "Auto scroll to load content")}
               />
+            </div>
+
+            <div className="setting-block setting-block--row">
+              <div className="setting-block__label">
+                <span>{t("失败重试", "Retry failed downloads")}</span>
+              </div>
+              <div className="number-field">
+                <InputNumber
+                  className="rb-number"
+                  min={0}
+                  max={5}
+                  step={1}
+                  value={draft.retry_count}
+                  onChange={(value) => {
+                    if (typeof value === "number") update({ retry_count: value });
+                  }}
+                  aria-label={t("下载失败重试次数", "Retries per failed download")}
+                />
+                <span className="number-field__suffix">{t("次", "times")}</span>
+              </div>
             </div>
 
             <div className="setting-block setting-block--row setting-block--last">
