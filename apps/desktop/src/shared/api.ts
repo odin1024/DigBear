@@ -64,6 +64,8 @@ export interface AppSettings {
   language: "auto" | "zh" | "en";
   /** How many times a failed download is retried. */
   retry_count: number;
+  /** Theme name: lantern | forest | night. */
+  theme: string;
 }
 
 export interface DownloadFile {

@@ -6,10 +6,15 @@ import { api, type AppSettings } from "../shared/api";
 import { toAppError, type AppError } from "../shared/errors";
 import { Masthead, type AppView } from "./Masthead";
 import { detectLocale, resolveLocale, setLocale, t } from "../shared/i18n";
+import { cssVarsFor, DEFAULT_THEME, type ThemeName } from "../theme";
 import { CrawlerView } from "../features/crawler/CrawlerView";
 import { SettingsView } from "../features/settings/SettingsView";
 
-export default function App() {
+interface AppProps {
+  onThemeChange: (name: ThemeName) => void;
+}
+
+export default function App({ onThemeChange }: AppProps) {
   const { message, modal } = AntApp.useApp();
   const [inTauriApp] = useState(() => isTauri());
 
@@ -23,6 +28,25 @@ export default function App() {
 
   const locale = settings ? resolveLocale(settings.language) : detectLocale();
   setLocale(locale);
+
+  /* 主题：CSS 变量与 antd token 同源，都来自 src/theme.ts。 */
+  useEffect(() => {
+    const name = (settings?.theme as ThemeName) ?? DEFAULT_THEME;
+    onThemeChange(name);
+    const vars = cssVarsFor(name);
+    let style = document.getElementById("theme-vars");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "theme-vars";
+      document.head.appendChild(style);
+    }
+    // 用 html:root 提高特异性：构建产物里样式表的顺序不保证，
+    // 只靠 :root 会输给 styles.css 的默认值。
+    style.textContent = `html:root {${Object.entries(vars)
+      .map(([key, value]) => `${key}:${value};`)
+      .join("")}}`;
+    document.documentElement.dataset.theme = name;
+  }, [settings?.theme, onThemeChange]);
 
   useEffect(() => {
     document.documentElement.lang = locale === "en" ? "en" : "zh-CN";

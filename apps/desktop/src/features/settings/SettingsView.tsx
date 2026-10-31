@@ -16,6 +16,7 @@ import {
 } from "../../shared/components/Icons";
 import { LoginSites } from "./components/LoginSites";
 import { t } from "../../shared/i18n";
+import { THEME_LABELS, THEME_NAMES } from "../../theme";
 import { ExtensionsPanel } from "./components/ExtensionsPanel";
 
 interface SettingsViewProps {
@@ -296,6 +297,21 @@ export function SettingsView({
                 checked={draft.scroll_page}
                 onChange={(checked) => update({ scroll_page: checked })}
                 aria-label={t("自动滚动加载", "Auto scroll to load content")}
+              />
+            </div>
+
+            <div className="setting-block setting-block--row">
+              <div className="setting-block__label">
+                <span>{t("界面主题", "Theme")}</span>
+              </div>
+              <Segmented
+                value={draft.theme}
+                onChange={(value) => update({ theme: String(value) })}
+                options={THEME_NAMES.map((name) => ({
+                  value: name,
+                  label: t(THEME_LABELS[name][0], THEME_LABELS[name][1]),
+                }))}
+                aria-label={t("界面主题", "UI theme")}
               />
             </div>
 

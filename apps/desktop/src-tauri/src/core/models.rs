@@ -94,6 +94,9 @@ pub struct AppSettings {
     /// How many times a failed download is retried before giving up.
     #[serde(default = "default_retry_count")]
     pub retry_count: u8,
+    /// UI theme: lantern | forest | night.
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
 
 fn default_language() -> String {
@@ -102,6 +105,10 @@ fn default_language() -> String {
 
 fn default_retry_count() -> u8 {
     2
+}
+
+fn default_theme() -> String {
+    "lantern".to_string()
 }
 
 /// Where downloads land when the user has not picked a folder yet.
@@ -137,6 +144,7 @@ impl AppSettings {
             sites: Vec::new(),
             language: default_language(),
             retry_count: default_retry_count(),
+            theme: default_theme(),
         }
     }
 
