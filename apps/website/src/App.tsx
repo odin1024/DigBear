@@ -17,10 +17,10 @@ import {
 } from "./components/Icons";
 import { SmartImage } from "./components/SmartImage";
 
-const REPO = "https://github.com/xw-meow/crawl-bear";
+const REPO = "https://github.com/your-org/dig-bear";
 const RELEASES = `${REPO}/releases`;
 const README = `${REPO}#readme`;
-const INSTALL = `${REPO}/blob/main/docs/INSTALL-macOS.md`;
+const INSTALL = `${REPO}/blob/main/docs/PREVIEW.md`;
 
 type Feature = {
   icon: ComponentType<{ size?: number }>;
@@ -83,9 +83,18 @@ const asset = (path: string) =>
   `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
 const SHOTS = [
-  { id: "home", label: ["首页", "Home"], src: asset("/assets/shots/home.webp"), caption: ["一个输入框，一屏就够", "One input, one screen"] },
-  { id: "results", label: ["结果页", "Results"], src: asset("/assets/shots/results.webp"), caption: ["分类筛选，勾选后批量收袋", "Filter by type, then collect in batches"] },
-  { id: "settings", label: ["设置", "Settings"], src: asset("/assets/shots/settings.webp"), caption: ["保存位置、扩展、并发与登录站点", "Folder, extensions, concurrency and login sites"] },
+  {
+    id: "home",
+    label: ["首页", "Home"],
+    src: asset("/assets/shots/home.webp"),
+    caption: ["一个输入框，一屏就够", "One input, one screen"],
+  },
+  {
+    id: "settings",
+    label: ["设置", "Settings"],
+    src: asset("/assets/shots/settings.webp"),
+    caption: ["保存位置、扩展、并发、主题与登录站点", "Folder, extensions, concurrency, theme and login sites"],
+  },
 ];
 
 const TECH: Array<[string, string]> = [
@@ -112,14 +121,14 @@ export default function App() {
     document.documentElement.lang = locale === "en" ? "en" : "zh-CN";
     document.title =
       locale === "en"
-        ? "CrawlBear — collect media from any webpage"
-        : "超级爬爬熊 · CrawlBear — 把网页里的宝贝收进采集袋";
+        ? "DigBear — collect media from any webpage"
+        : "掘掘熊 · DigBear — 把网页里的宝贝收进采集袋";
     const description = document.querySelector('meta[name="description"]');
     description?.setAttribute(
       "content",
       locale === "en"
-        ? "CrawlBear is a local macOS media crawler. Paste a URL and collect images, videos, music and fonts."
-        : "超级爬爬熊 CrawlBear：一个跑在 macOS 本机的网页媒体翻找工具。输入网址，图片、视频、音乐、字体一次翻出来，只读、本机、无遥测。",
+        ? "DigBear is a local Windows media crawler. Paste a URL and collect images, videos, music and fonts."
+        : "掘掘熊 DigBear：一个跑在 Windows 本机的网页媒体翻找工具。输入网址，图片、视频、音乐、字体一次翻出来，只读、本机、无遥测。",
     );
   }, [locale]);
 
@@ -135,11 +144,11 @@ export default function App() {
       <div className="paper" aria-hidden="true" />
 
       <header className="nav">
-        <a className="nav__brand" href="#top" aria-label={t("超级爬爬熊 CrawlBear 首页", "CrawlBear home")}>
+        <a className="nav__brand" href="#top" aria-label={t("掘掘熊 DigBear 首页", "DigBear home")}>
           <img src={asset("/assets/brand/bear-logo.webp")} alt="" />
           <span>
-            <strong>{t("超级爬爬熊", "CrawlBear")}</strong>
-            <em>CrawlBear</em>
+            <strong>{t("掘掘熊", "DigBear")}</strong>
+            <em>DigBear</em>
           </span>
         </a>
         <nav className="nav__links" aria-label={t("主导航", "Main navigation")}>
@@ -174,7 +183,7 @@ export default function App() {
           >
             <span className="eyebrow">
               <PawIcon size={13} />
-              {t("macOS · 本机运行 · MIT 开源", "macOS · local · MIT open source")}
+              {t("Windows · 本机运行 · MIT 开源", "Windows · local · MIT open source")}
             </span>
             <h1>
               {t("把网页里的宝贝，", "All the treasures on the web,")}
@@ -190,7 +199,7 @@ export default function App() {
             <div className="hero__actions">
               <a className="btn btn--primary" href={RELEASES} target="_blank" rel="noreferrer">
                 <DownloadIcon size={18} />
-                {t("下载 macOS 版", "Download for macOS")}
+                {t("下载 Windows 版", "Download for Windows")}
               </a>
               <a className="btn" href={REPO} target="_blank" rel="noreferrer">
                 <GithubIcon size={17} />
@@ -210,7 +219,7 @@ export default function App() {
               className="hero__bear"
               primary={asset("/assets/generated/hero.png")}
               fallback={asset("/assets/brand/bear-hero.webp")}
-              alt={t("小熊爬爬抱着采集袋挥手", "Papa the bear waving with a collection bag")}
+              alt={t("小熊爬爬抱着采集袋挥手", "The bear waving with a collection bag")}
             />
             <span className="sticker sticker--jpg">JPG</span>
             <span className="sticker sticker--mp4">MP4</span>
@@ -266,7 +275,7 @@ export default function App() {
             <SmartImage
               primary={asset("/assets/generated/preview.png")}
               fallback={asset("/assets/brand/bear-happy.webp")}
-              alt={t("小熊抱着装满媒体文件的采集袋", "Papa holding a bag full of media files")}
+              alt={t("小熊抱着装满媒体文件的采集袋", "The bear holding a bag full of media files")}
             />
             <span className="split__tag">{t("先看，再收", "Preview, then save")}</span>
           </motion.div>
@@ -310,7 +319,7 @@ export default function App() {
             <SmartImage
               primary={asset("/assets/generated/resolver.png")}
               fallback={asset("/assets/brand/bear-crawl.webp")}
-              alt={t("小熊拿着放大镜和工具，正在调校一枚媒体解析齿轮", "Papa tuning a media parsing gear with a magnifying glass")}
+              alt={t("小熊拿着放大镜和工具，正在调校一枚媒体解析齿轮", "The bear tuning a media parsing gear with a magnifying glass")}
             />
             <span className="split__tag">{t("最高清晰度", "Highest quality")}</span>
           </motion.div>
@@ -454,26 +463,26 @@ export default function App() {
               <h2>{t("第一次打开，按这三步来。", "First launch, in three steps.")}</h2>
               <p className="install__lede">
                 {t(
-                  "我们没有预算购买 Apple Developer Program（$99/年），所以安装包没有做 Apple 公证。macOS 首次打开会拦一下。",
-                  "We do not have the budget for the $99/year Apple Developer Program, so the package is not notarized. macOS will block the first launch once.",
+                  "我们没有购买代码签名证书，所以安装包没有签名。Windows SmartScreen 首次运行会拦一下。",
+                  "We have not purchased a code-signing certificate, so the package is unsigned. Windows SmartScreen will warn on the first launch.",
                 )}
               </p>
               <ol className="install__steps">
                 <li>
                   <span>1</span>
                   <div>
-                    <strong>{t("下载并打开 .pkg 安装包", "Download and open the .pkg")}</strong>
-                    <p>{t("在 GitHub Releases 下载后，右键点按安装包 →「打开」。", "Download it from GitHub Releases, then right-click → Open.")}</p>
+                    <strong>{t("下载 NSIS 安装包并运行", "Download the NSIS installer and run it")}</strong>
+                    <p>{t("在 GitHub Releases 下载 DigBear_*_x64-setup.exe，双击即可安装。", "Download DigBear_*_x64-setup.exe from GitHub Releases and run it.")}</p>
                   </div>
                 </li>
                 <li>
                   <span>2</span>
                   <div>
-                    <strong>{t("去隐私设置里放行", "Allow it in Privacy & Security")}</strong>
+                    <strong>{t("在 SmartScreen 里放行", "Allow it in SmartScreen")}</strong>
                     <p>
                       {t(
-                        "如果提示无法验证开发者，打开「系统设置 → 隐私与安全性」，点「仍要打开」。",
-                        "If macOS says it cannot verify the developer, open System Settings → Privacy & Security and click Open Anyway.",
+                        "如果提示「Windows 已保护你的电脑」，点「更多信息」→「仍要运行」。",
+                        "If Windows says it protected your PC, click More info → Run anyway.",
                       )}
                     </p>
                   </div>
@@ -481,11 +490,11 @@ export default function App() {
                 <li>
                   <span>3</span>
                   <div>
-                    <strong>{t("仍提示“已损坏”？执行一次命令", "Still says “damaged”? Run this once")}</strong>
+                    <strong>{t("还是被拦？检查一下系统设置", "Still blocked? Check your system settings")}</strong>
                     <p>
-                      {t("打开终端运行：", "Open Terminal and run:")}
-                      <code>xattr -dr com.apple.quarantine ~/Downloads/CrawlBear-macOS.pkg</code>
-                      {t("然后重新打开安装包。", "Then open the installer again.")}
+                      {t("打开「Windows 安全中心 → 保护历史记录」，允许这个安装包运行。", "Open Windows Security → Protection history and allow the installer.")}
+                      <code>DigBear_0.4.0_x64-setup.exe</code>
+                      {t("然后重新运行安装包。", "Then run the installer again.")}
                     </p>
                   </div>
                 </li>
@@ -494,7 +503,7 @@ export default function App() {
                 <ShieldIcon size={15} />
                 {t(
                   "隐私：不上传媒体、无遥测；Cookie 和设置只留在本机；只访问你选择的下载目录。不需要相机、麦克风或屏幕录制权限。",
-                  "Privacy: no media uploads, no telemetry; cookies and settings stay on this Mac; only the download folder you choose is accessed. No camera, microphone or screen-recording permission is needed.",
+                  "Privacy: no media uploads, no telemetry; cookies and settings stay on this computer; only the download folder you choose is accessed. No camera, microphone or screen-recording permission is needed.",
                 )}
               </p>
               <div className="install__actions">
@@ -508,7 +517,7 @@ export default function App() {
               <SmartImage
                 primary={asset("/assets/generated/install.png")}
                 fallback={asset("/assets/brand/bear-login.webp")}
-                alt={t("小熊抱着安装包裹，旁边是盾牌和门", "Papa holding a package beside a shield and door")}
+                alt={t("小熊抱着安装包裹，旁边是盾牌和门", "The bear holding a key beside a door")}
               />
               <span className="split__tag">{t("本机优先", "Local first")}</span>
             </div>
@@ -525,7 +534,7 @@ export default function App() {
               </span>
               <h2>{t("准备好翻找了吗？", "Ready to start digging?")}</h2>
               <p>
-                {t("从 GitHub 获取源码或下载 macOS 版本。如果 Releases 暂时没有安装包，可以按 ", "Get the source on GitHub or download the macOS build. If Releases has no package yet, follow the ")}
+                {t("从 GitHub 获取源码或下载 Windows 版本。如果 Releases 暂时没有安装包，可以按 ", "Get the source on GitHub or download the Windows build. If Releases has no package yet, follow the ")}
                 <a href={README} target="_blank" rel="noreferrer">README</a>
                 {t(" 的步骤自行构建。", " steps to build it yourself.")}
               </p>
@@ -552,7 +561,7 @@ export default function App() {
         <div className="footer__brand">
           <img src={asset("/assets/brand/bear-logo.webp")} alt="" />
           <div>
-            <strong>{t("超级爬爬熊", "CrawlBear")} · CrawlBear</strong>
+            <strong>{t("掘掘熊", "DigBear")} · DigBear</strong>
             <p>{t("只读翻找，本机保存。", "Read-only crawling, saved locally.")}</p>
           </div>
         </div>

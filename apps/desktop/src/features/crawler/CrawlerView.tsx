@@ -50,6 +50,8 @@ interface CrawlerViewProps {
   settings: AppSettings | null;
   settingsLoading: boolean;
   resetSignal: number;
+  /** 命令行 `--crawl <url>` 指定的网址；有值时自动开始翻找。 */
+  initialUrl?: string | null;
   onOpenSettings: (prefillUrl?: string) => void;
 }
 
@@ -75,6 +77,7 @@ export function CrawlerView({
   settings,
   settingsLoading,
   resetSignal,
+  initialUrl,
   onOpenSettings,
 }: CrawlerViewProps) {
   const { message } = AntApp.useApp();
@@ -259,6 +262,20 @@ export function CrawlerView({
       setCrawling(false);
     }
   };
+
+  /* 命令行 `--crawl <url>`：地址一到就自动翻找。 */
+  const crawlRef = useRef<(target?: string) => void>(() => {});
+  const crawledInitial = useRef(false);
+  useEffect(() => {
+    if (!initialUrl || crawledInitial.current) return;
+    crawledInitial.current = true;
+    setUrl(initialUrl);
+    void crawlRef.current(initialUrl);
+  }, [initialUrl]);
+
+  useEffect(() => {
+    crawlRef.current = handleCrawl;
+  });
 
   const toggleResource = (id: string) => {
     setSelected((previous) => {

@@ -238,6 +238,8 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 
 export const api = {
   settings: () => call<AppSettings>("get_settings"),
+  /** 命令行 `--crawl <url>` 指定的网址（没有则返回 null）。 */
+  startUrl: () => call<string | null>("app_start_url"),
   saveSettings: (settings: AppSettings) =>
     call<AppSettings>("save_settings", { settings }),
   pickDownloadDir: () => call<string | null>("pick_download_dir"),

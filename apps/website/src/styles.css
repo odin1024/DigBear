@@ -4,24 +4,24 @@
    ============================================================ */
 
 :root {
-  --paper: #fff7e8;
-  --paper-deep: #fbe8c8;
-  --card: #fffcf3;
-  --ink: #33261d;
-  --ink-soft: #5e4936;
-  --muted: #8e7a63;
+  --paper: #faf5ec;
+  --paper-deep: #efe3d0;
+  --card: #fffdf8;
+  --ink: #2e2440;
+  --ink-soft: #584a6d;
+  --muted: #8a7ea0;
   --fur: #b97b43;
-  --honey: #f9c74f;
-  --honey-deep: #eab53a;
+  --honey: #f0a830;
+  --honey-deep: #cf8b16;
   --berry: #e2553c;
   --berry-deep: #b93a24;
-  --leaf: #5e9c68;
-  --line: #33261d;
-  --line-soft: #e8d3b4;
+  --leaf: #4f9e8c;
+  --line: #2e2440;
+  --line-soft: #ded4e6;
 
   --font-display: "Hannotate SC", "HanziPen SC", "Yuanti SC", "PingFang SC",
     "Hiragino Sans GB", sans-serif;
-  --font-body: "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei",
+  --font-body: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC",
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
@@ -176,7 +176,7 @@ h2 {
 
 .btn--primary {
   background: var(--berry);
-  color: #fff8ee;
+  color: #fffdf8;
 }
 
 .btn--primary:hover {
@@ -326,7 +326,7 @@ h2 {
 
 .nav__github:hover {
   transform: translateY(-1px);
-  background: #211a15;
+  background: #2e2440;
 }
 
 /* ---------- hero ---------- */
@@ -582,7 +582,7 @@ h2 {
   background: var(--berry);
   border: 2px solid var(--line);
   border-radius: 999px;
-  color: #fff8ee;
+  color: #fffdf8;
   font-size: 12px;
   font-weight: 700;
   box-shadow: 2px 2px 0 var(--line);
@@ -735,7 +735,7 @@ h2 {
   margin: 78px 0;
   padding: 76px 0;
   background: var(--ink);
-  color: #f6ead8;
+  color: #efe3d0;
 }
 
 .tech__inner {
@@ -751,7 +751,7 @@ h2 {
 }
 
 .tech p {
-  color: #d9c8b3;
+  color: #ded4e6;
   font-size: 15px;
 }
 

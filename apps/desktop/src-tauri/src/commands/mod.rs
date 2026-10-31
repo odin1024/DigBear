@@ -12,6 +12,14 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, App
     Ok(state.settings())
 }
 
+/// 命令行 `--crawl <url>` 指定的网址；没有则为 None。
+///
+/// 注意：Tauri v2 要求「带引用参数的异步命令必须返回 Result」。
+#[tauri::command]
+pub async fn app_start_url(start: State<'_, crate::StartUrl>) -> Result<Option<String>, AppError> {
+    Ok(start.0.clone())
+}
+
 #[tauri::command]
 pub async fn save_settings(
     state: State<'_, AppState>,

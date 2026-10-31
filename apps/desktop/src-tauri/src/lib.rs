@@ -42,6 +42,24 @@ pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Re
     Ok(())
 }
 
+/// 启动时用 `--crawl <url>` 指定的网址，界面会直接翻好并停在结果页。
+///
+/// 用来做脚本化批处理，或开机自动翻找某个固定站点。
+pub struct StartUrl(pub Option<String>);
+
+/// 从命令行参数里取 `--crawl <url>`（也接受 `--crawl=<url>`）。
+fn parse_crawl_arg<I: Iterator<Item = String>>(mut args: I) -> Option<String> {
+    while let Some(arg) = args.next() {
+        if let Some(url) = arg.strip_prefix("--crawl=") {
+            return Some(url.trim().to_string());
+        }
+        if arg == "--crawl" {
+            return args.next().map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
+        }
+    }
+    None
+}
+
 /// 按主显示器的工作区调整窗口初始尺寸。
 ///
 /// 上游把窗口写死成 1240x900，但在 1536x864 / 125% 缩放这类很常见的屏幕上，
@@ -77,6 +95,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             fit_window_to_work_area(app.handle());
+            let start_url = parse_crawl_arg(std::env::args().skip(1));
+            if let Some(url) = start_url.as_ref() {
+                eprintln!("[digbear] 启动即翻找: {url}");
+            }
+            app.manage(StartUrl(start_url));
             let state = core::state::AppState::new(app.handle())?;
             app.manage(state);
             build_app_menu(app.handle(), false)?;
@@ -89,6 +112,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
+            commands::app_start_url,
             commands::save_settings,
             commands::pick_download_dir,
             commands::crawl_site,
