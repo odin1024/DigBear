@@ -182,10 +182,12 @@ export function ExtensionsPanel({ active, inTauriApp }: ExtensionsPanelProps) {
         );
       })}
 
+      {/* 读取已经结束（loading=false），这里再显示「正在读取」就是自相矛盾：
+          列表为空时应当老老实实说没有可用扩展。 */}
       {!loading && extensions.length === 0 && (
         <p className="extension-row__desc">
           {inTauriApp
-            ? t("正在读取扩展列表…", "Loading extensions…")
+            ? t("暂时没有可用的扩展。", "No extensions available right now.")
             : t("浏览器预览模式下不显示扩展。", "Extensions are hidden in the browser preview.")}
         </p>
       )}
