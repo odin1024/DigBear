@@ -16,7 +16,7 @@
 不用懂技术，不用装插件，不用注册账号。装好之后双击打开，把网址粘进去就行。
 
 <p align="center">
-  <img src="./docs/assets/home.png" alt="掘掘熊主界面" width="100%" />
+  <img src="./docs/assets/home.webp" alt="掘掘熊主界面" width="100%" />
 </p>
 
 ## 为什么值得一用
