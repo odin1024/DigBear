@@ -114,7 +114,7 @@ const asset = (path: string) =>
   `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
 // 截图更新后改这个值，浏览器才不会继续用旧缓存
-const SHOT_VERSION = "20261101b";
+const SHOT_VERSION = "20261102";
 
 const SHOTS = [
   {
