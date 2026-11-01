@@ -3671,13 +3671,61 @@ h3 {
   border-color: var(--honey);
   background: color-mix(in srgb, var(--honey) 18%, var(--card));
   color: var(--ink);
-}/* ---------- About page ---------- */
+}
+/* ---------- 设置页 · 数据与关于 ---------- */
+
+.settings-about__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.settings-about__mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: var(--honey);
+  border: 2.5px solid var(--line);
+  border-radius: 11px;
+  transform: rotate(-3deg);
+}
+
+.settings-about__name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settings-about__version {
+  margin-left: auto;
+  padding: 1px 9px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-deep);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.settings-about__copy {
+  margin: 12px 0 14px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--ink-soft);
+}
+
+.settings-about__reset {
+  width: 100%;
+}
+
+/* ---------- About page ---------- */
 
 .about {
   width: 100%;
   max-width: var(--shell);
   margin: 0 auto;
-  padding: 10px 0 48px;
+  padding: 4px 0 18px;
   overflow-y: auto;
   height: 100%;
 }
@@ -3685,8 +3733,8 @@ h3 {
 .about__hero {
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 24px 26px;
+  gap: 16px;
+  padding: 14px 18px;
   background: var(--card);
   border: var(--outline);
   border-radius: var(--radius-lg);
@@ -3695,11 +3743,11 @@ h3 {
 
 .about__logo {
   flex: none;
-  width: 92px;
-  height: 92px;
-  border-radius: 26px;
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
   border: var(--outline);
-  box-shadow: var(--sticker-shadow);
+  box-shadow: 3px 3px 0 var(--line);
   object-fit: cover;
 }
 
@@ -3710,57 +3758,57 @@ h3 {
 .about__title {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
   font-family: var(--font-display);
-  font-size: 30px;
+  font-size: 23px;
+  line-height: 1.25;
   letter-spacing: 0.5px;
 }
 
 .about__title-en {
   font-family: var(--font-latin);
-  font-size: 22px;
+  font-size: 17px;
   color: var(--muted);
   letter-spacing: 1px;
 }
 
 .about__tagline {
-  margin: 6px 0 0;
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
   color: var(--ink-soft);
 }
 
 .about__version {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 12px 0 0;
-  font-size: 13px;
+  gap: 8px;
+  margin: 0 0 0 auto;
+  padding-left: 16px;
+  font-size: 12px;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .about__version-chip {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 1px 9px;
   border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--honey);
   color: var(--ink);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
 }
 
 .about__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  gap: 18px;
-  margin-top: 20px;
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 14px;
   align-items: start;
-}
-
-.about__col {
-  display: grid;
-  gap: 18px;
 }
 
 .about__card {
@@ -3768,41 +3816,41 @@ h3 {
   border: var(--outline);
   border-radius: var(--radius-lg);
   box-shadow: var(--sticker-shadow);
-  padding: 22px 24px;
+  padding: 15px 17px;
 }
 
 .about__card-head {
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin-bottom: 14px;
+  gap: 7px;
+  margin-bottom: 10px;
   color: var(--ink);
 }
 
 .about__card-head h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 18px;
-  letter-spacing: 0.4px;
+  font-size: 15.5px;
+  letter-spacing: 0.3px;
 }
 
 .about__contact {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   align-items: flex-start;
 }
 
 .about__qr {
   flex: none;
-  width: 172px;
-  height: 172px;
+  width: 138px;
+  height: 138px;
   display: grid;
   place-items: center;
-  padding: 8px;
+  padding: 6px;
   background: #ffffff;
   border: var(--outline);
-  border-radius: var(--radius-md);
-  box-shadow: var(--sticker-shadow);
+  border-radius: var(--radius-sm);
+  box-shadow: 3px 3px 0 var(--line);
 }
 
 .about__qr img {
@@ -3817,21 +3865,21 @@ h3 {
   height: 100%;
   display: grid;
   place-content: center;
-  gap: 6px;
+  gap: 4px;
   text-align: center;
   border: 2px dashed var(--line-soft);
-  border-radius: var(--radius-sm);
-  padding: 10px;
+  border-radius: 8px;
+  padding: 8px;
 }
 
 .about__qr-fallback p {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .about__qr-fallback span {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -3841,27 +3889,31 @@ h3 {
 }
 
 .about__contact-text p {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .about__contact-hint {
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 12.5px;
 }
 
 .about__contact-hint--muted {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .about__list {
-  margin: 0 0 14px;
-  padding-left: 20px;
+  margin: 0 0 10px;
+  padding-left: 17px;
+  font-size: 12.5px;
+  line-height: 1.6;
   color: var(--ink-soft);
 }
 
 .about__list li {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .about__list li::marker {
@@ -3871,21 +3923,46 @@ h3 {
 .about__pending {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .about__foot {
-  margin-top: 26px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .about__foot-dot {
-  margin: 0 8px;
+  margin: 0 6px;
 }
 
-@media (max-width: 880px) {
+.about__foot-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.about__foot-link:hover {
+  color: var(--berry-deep);
+}
+
+@media (max-width: 1080px) {
+  .about__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
   .about__grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3895,15 +3972,13 @@ h3 {
     align-items: center;
     text-align: center;
   }
-}
 
-@media (max-width: 560px) {
   .about__hero {
-    flex-direction: column;
-    text-align: center;
+    flex-wrap: wrap;
   }
 
   .about__version {
-    justify-content: center;
+    margin: 0;
+    padding-left: 0;
   }
 }

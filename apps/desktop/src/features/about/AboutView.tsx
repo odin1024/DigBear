@@ -43,15 +43,15 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
           </h1>
           <p className="about__tagline">
             {t(
-              "一款开源的网页媒体翻找小工具，只在你的电脑上只读工作。",
-              "An open-source media crawler that reads pages locally on your computer.",
+              "开源的网页媒体翻找小工具，只在你的电脑上只读工作。",
+              "Open-source media crawler that reads pages locally on your computer.",
             )}
           </p>
-          <p className="about__version">
-            <span className="about__version-chip">v{APP_VERSION}</span>
-            <span>{t("MIT 许可证 · 完全开源免费", "MIT licensed · free and open source")}</span>
-          </p>
         </div>
+        <p className="about__version">
+          <span className="about__version-chip">v{APP_VERSION}</span>
+          <span>{t("MIT 许可证 · 完全开源免费", "MIT licensed · free and open source")}</span>
+        </p>
       </section>
 
       <div className="about__grid">
@@ -94,14 +94,10 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
                   "You can also sign in on the target site via Settings and include the URL when reporting.",
                 )}
               </p>
-              <Button size="small" onClick={onOpenSettings}>
-                {t("去设置登录站点", "Open Settings")}
-              </Button>
             </div>
           </div>
         </article>
 
-        <div className="about__col">
         <article className="about__card">
           <header className="about__card-head">
             <InfoIcon size={18} />
@@ -122,8 +118,8 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
             </li>
             <li>
               {t(
-                "需要登录的站点在内置窗口里登录一次，凭据只留在你自己的电脑上。",
-                "For sites that need a login, sign in once in the built-in window; credentials never leave your PC.",
+                "需要登录的站点在内置窗口登录一次，凭据只留在你自己的电脑上。",
+                "Sign in once in the built-in window; credentials never leave your PC.",
               )}
             </li>
           </ul>
@@ -150,26 +146,30 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
             </li>
             <li>
               {t(
-                "请遵守目标网站的服务条款与著作权法律，只保存你有权使用的内容。",
-                "Respect each site's terms and copyright; save only content you are allowed to use.",
+                "请遵守目标网站条款与著作权法律，只保存你有权使用的内容。",
+                "Respect site terms and copyright; save only content you are allowed to use.",
               )}
             </li>
             <li>
               {t(
-                "我们鼓励把它用于学习与个人素材整理，不提倡任何不当用途。",
-                "We encourage using it for learning and organizing your own media, and discourage any misuse.",
+                "鼓励用于学习与个人素材整理，不提倡任何不当用途。",
+                "Encouraged for learning and organizing your own media; misuse is discouraged.",
               )}
             </li>
           </ul>
         </article>
-        </div>
       </div>
 
       <footer className="about__foot">
-        {t("掘掘熊 DigBear · v", "DigBear · v")}
-        {APP_VERSION}
-        <span className="about__foot-dot">·</span>
-        {t("MIT 开源 · 用得放心", "MIT licensed · use it freely")}
+        <span>
+          {t("掘掘熊 DigBear · v", "DigBear · v")}
+          {APP_VERSION}
+          <span className="about__foot-dot">·</span>
+          {t("MIT 开源 · 用得放心", "MIT licensed · use it freely")}
+        </span>
+        <button type="button" className="about__foot-link" onClick={onOpenSettings}>
+          {t("去设置登录站点", "Open Settings")}
+        </button>
       </footer>
     </motion.div>
   );

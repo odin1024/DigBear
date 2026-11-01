@@ -19,6 +19,7 @@ import { LoginSites } from "./components/LoginSites";
 import { t } from "../../shared/i18n";
 import { THEME_LABELS, THEME_NAMES } from "../../theme";
 import { ExtensionsPanel } from "./components/ExtensionsPanel";
+import { APP_VERSION } from "../../shared/version";
 
 interface SettingsViewProps {
   active: boolean;
@@ -28,7 +29,7 @@ interface SettingsViewProps {
   error: AppError | null;
   prefillUrl: string;
   onPrefillConsumed: () => void;
-  onSaved: (settings: AppSettings) => void;
+  onSaved: (settings: AppSettings, options?: { silent?: boolean }) => void;
   onRefresh: () => void;
 }
 
@@ -58,13 +59,14 @@ export function SettingsView({
   onSaved,
   onRefresh,
 }: SettingsViewProps) {
-  const { message } = AntApp.useApp();
+  const { message, modal } = AntApp.useApp();
   const reduceMotion = useReducedMotion();
   const [draft, setDraft] = useState<AppSettings | null>(
     settings ? cloneSettings(settings) : null
   );
   const [saving, setSaving] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     setDraft(settings ? cloneSettings(settings) : null);
@@ -74,6 +76,37 @@ export function SettingsView({
     if (!draft || !settings) return false;
     return fingerprint(draft) !== fingerprint(settings);
   }, [draft, settings]);
+
+  /** 恢复出厂设置：把应用清回刚装好的样子。 */
+  const handleResetAll = async () => {
+    if (!inTauriApp || resetting) return;
+    const confirmed = await new Promise<boolean>((resolve) => {
+      modal.confirm({
+        title: t("恢复出厂设置？", "Reset everything?"),
+        content: t(
+          "历史记录、收藏、下载清单、登录状态和所有设置都会被清空，而且不能撤销。",
+          "History, favourites, the download list, saved logins and every setting will be erased. This cannot be undone.",
+        ),
+        okText: t("清空并重置", "Reset"),
+        cancelText: t("取消", "Cancel"),
+        okButtonProps: { danger: true },
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+    setResetting(true);
+    try {
+      const next = await api.resetAllData();
+      setDraft(cloneSettings(next));
+      onSaved(next, { silent: true });
+      message.success(t("已恢复到初始状态。", "Everything has been reset."));
+    } catch (error) {
+      message.error(toAppError(error).message);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const update = (patch: Partial<AppSettings>) => {
     setDraft((previous) => (previous ? { ...previous, ...patch } : previous));
@@ -448,31 +481,43 @@ export function SettingsView({
           </motion.div>
 
           <motion.section
-            className="panel settings-card about-card"
+            className="panel settings-card"
             aria-labelledby="aboutTitle"
             {...sectionMotion(4)}
           >
             <div className="panel__head">
-              <h2 id="aboutTitle">{t("关于", "About")}</h2>
+              <h2 id="aboutTitle">{t("数据与关于", "Data & about")}</h2>
             </div>
-            <div className="about-brand">
-              <span className="about-brand__mark" aria-hidden="true">
-                <PawIcon size={24} />
-              </span>
-              <div>
-                <p className="about-brand__name">{t("掘掘熊 · DigBear", "DigBear")}</p>
-                <p className="about-brand__version">v0.3.2</p>
+            <div className="settings-about">
+              <div className="settings-about__row">
+                <span className="settings-about__mark" aria-hidden="true">
+                  <PawIcon size={20} />
+                </span>
+                <span className="settings-about__name">{t("掘掘熊 · DigBear", "DigBear")}</span>
+                <span className="settings-about__version">v{APP_VERSION}</span>
               </div>
+              <p className="settings-about__copy">
+                {t(
+                  "开源学习小工具，只读翻找公开页面。请遵守目标网站的服务条款与著作权法律，只保存你有权使用的内容。",
+                  "An open-source learning tool that only reads public pages. Respect each site's terms and copyright law, and save only content you are allowed to use.",
+                )}
+              </p>
+              <Button
+                danger
+                className="rb-btn settings-about__reset"
+                loading={resetting}
+                disabled={!inTauriApp}
+                onClick={() => void handleResetAll()}
+              >
+                {t("恢复出厂设置", "Reset all data")}
+              </Button>
+              <p className="settings-hint">
+                {t(
+                  "清空历史记录、收藏、下载清单、登录状态与全部设置，回到刚装好的样子。",
+                  "Erase history, favourites, the download list, saved logins and every setting — back to a fresh install.",
+                )}
+              </p>
             </div>
-            <p className="about-copy">
-              {t(
-                "掘掘熊是一款开源学习小工具，只读翻找公开页面，不提倡也不鼓励用于任何不当用途。请遵守目标网站的服务条款与著作权法律，只保存你有权使用的内容。",
-                "DigBear is an open-source learning tool that only reads public pages. Use it responsibly, follow each site's terms and copyright law, and save only content you are allowed to use.",
-              )}
-            </p>
-            <button type="button" className="rb-text-link about-refresh" onClick={onRefresh}>
-              {t("重新读取设置", "Reload settings")}
-            </button>
           </motion.section>
         </div>
       </div>

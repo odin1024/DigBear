@@ -308,6 +308,7 @@ pub fn run() {
             commands::remove_favorite,
             commands::read_clipboard,
             commands::scan_folder_urls,
+            commands::reset_all_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DigBear");

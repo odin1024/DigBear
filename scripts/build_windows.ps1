@@ -95,6 +95,9 @@ Get-ChildItem (Join-Path $bundleDir "msi") -Filter *.msi -ErrorAction SilentlyCo
 $exeTarget = Join-Path $Repo "build-preview\dig-bear.exe"
 try {
     Copy-Item (Join-Path $desktopCopy "src-tauri\target\release\dig-bear.exe") $exeTarget -Force
+    # 预览版放一个标记文件：它的配置（历史 / 收藏 / 设置）写到独立子目录，
+    # 不会把开发时的测试数据带进用户装好的正式版。
+    Set-Content -Path (Join-Path $Repo "build-preview\digbear-preview.marker") -Value "DigBear portable preview build" -Encoding ASCII
 } catch {
     Write-Warning "没能覆盖 $exeTarget（程序正在运行？）。安装包不受影响。"
 }

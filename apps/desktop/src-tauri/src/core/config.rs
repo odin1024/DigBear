@@ -4,6 +4,21 @@ use std::path::PathBuf;
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager};
 
+/// 免安装预览版的标记文件，放在 exe 同目录。
+///
+/// 打包脚本复制预览版 exe 时会一并放上这个文件：预览版的配置写到
+/// 独立子目录里，和正式安装版互不干扰 —— 开发时在预览版里翻找出的
+/// 历史与收藏，不会出现在用户装好的正式版里。
+pub const PREVIEW_MARKER: &str = "digbear-preview.marker";
+
+/// 当前是不是免安装预览版。
+pub fn is_preview_build() -> bool {
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join(PREVIEW_MARKER).exists()))
+        .unwrap_or(false)
+}
+
 pub struct SettingsStore {
     path: PathBuf,
     data: RwLock<AppSettings>,
@@ -18,9 +33,15 @@ impl SettingsStore {
         {
             std::path::PathBuf::from(test_dir)
         } else {
-            app.path()
+            let base = app
+                .path()
                 .app_config_dir()
-                .map_err(|e| AppError::new("settings_failed", format!("无法定位配置目录: {e}")))?
+                .map_err(|e| AppError::new("settings_failed", format!("无法定位配置目录: {e}")))?;
+            if is_preview_build() {
+                base.join("preview")
+            } else {
+                base
+            }
         };
         std::fs::create_dir_all(&dir)?;
         let path = dir.join("settings.json");

@@ -106,6 +106,17 @@ apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.4.0_x64_en-US.msi
 HLS/DASH 下载与音视频合并需要 FFmpeg。应用内
 **设置 → 扩展管理** 提供一键安装，安装的是应用私有的副本，不会污染系统 `PATH`。
 
+## 本地数据
+
+设置、历史记录、收藏、下载清单与登录状态都存在本机，不上传服务器。
+
+- **位置**：Windows 下在 `%APPDATA%\com.digbear.desktop`
+- **一键清空**：设置页 →「数据与关于」→ **恢复出厂设置**，
+  会清空历史、收藏、下载清单、登录状态和所有设置，回到刚装好的样子
+- **免安装预览版**：仓库里的 `build-preview\dig-bear.exe` 会在同目录放一个
+  `digbear-preview.marker` 标记文件，用它时数据写到 `%APPDATA%\com.digbear.desktop\preview`，
+  和正式安装版互不干扰
+
 ## 隐私
 
 - 只做只读发现，不向远程页面注入 Tauri IPC，不上传任何数据。

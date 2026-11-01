@@ -29,6 +29,17 @@ impl AppState {
         })
     }
 
+    /// 恢复出厂状态：清空历史、收藏、下载清单，并把设置还原成默认值。
+    ///
+    /// 登录态（Cookie）不在这里清，由调用方另行处理 WebView 侧的数据。
+    pub fn reset_all(&self) -> Result<(), AppError> {
+        self.history.clear_history()?;
+        self.history.clear_favorites()?;
+        self.manifest.clear()?;
+        self.settings.replace(AppSettings::defaults())?;
+        Ok(())
+    }
+
     pub fn settings(&self) -> AppSettings {
         self.settings.get()
     }

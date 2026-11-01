@@ -109,6 +109,16 @@ impl HistoryStore {
         Ok(snapshot)
     }
 
+    /// 清空全部收藏。
+    pub fn clear_favorites(&self) -> Result<Vec<FavoriteEntry>, AppError> {
+        {
+            let mut guard = self.favorites.write().expect("favorites lock");
+            guard.clear();
+        }
+        write_json(&self.favorites_path(), &Vec::<FavoriteEntry>::new())?;
+        Ok(Vec::new())
+    }
+
     pub fn remove_favorite(&self, url: &str) -> Result<Vec<FavoriteEntry>, AppError> {
         {
             let mut favorites = self.favorites.write().expect("favorites lock");

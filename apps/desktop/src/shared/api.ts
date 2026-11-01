@@ -335,4 +335,6 @@ export const api = {
 
   /** 读取系统剪贴板里的文字。 */
   readClipboard: () => call<string | null>("read_clipboard"),
+  /** 恢复出厂状态：清空设置、历史、收藏、下载清单与登录态。 */
+  resetAllData: () => call<AppSettings>("reset_all_data"),
 };

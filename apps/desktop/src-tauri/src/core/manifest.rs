@@ -53,6 +53,19 @@ impl DownloadManifest {
         }
     }
 
+    /// 清空下载清单。
+    pub fn clear(&self) -> Result<(), AppError> {
+        {
+            let mut guard = self.entries.write().expect("manifest lock");
+            guard.clear();
+        }
+        if let Some(parent) = self.path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&self.path, b"[]")?;
+        Ok(())
+    }
+
     /// 查一条记录；文件已经不在磁盘上时视为没下过。
     pub fn lookup(&self, url: &str) -> Option<ManifestEntry> {
         let entry = self.entries.read().expect("manifest lock").get(url).cloned()?;

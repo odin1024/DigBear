@@ -91,6 +91,21 @@ pub fn all_cookies_for_url(
     out
 }
 
+/// 清空所有内置窗口的登录态（Cookie 与页面存储）。
+///
+/// 用于「恢复出厂设置」：让应用回到刚装好时的样子。
+pub fn clear_all_sessions(app: &AppHandle) {
+    for label in ["main", LOGIN_LABEL, "crawl-worker"] {
+        let Some(webview) = app.get_webview_window(label) else { continue };
+        if let Ok(cookies) = webview.cookies() {
+            for cookie in cookies {
+                let _ = webview.delete_cookie(cookie);
+            }
+        }
+        let _ = webview.eval("try{localStorage.clear();sessionStorage.clear()}catch(e){}");
+    }
+}
+
 pub fn get_site_session(app: &AppHandle, raw_url: &str) -> Result<SessionInfo, AppError> {
     let url = normalize_page_url(raw_url)?;
     let domain = host_label(&url);

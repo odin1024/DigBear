@@ -378,6 +378,19 @@ pub async fn scan_folder_urls(path: String) -> Result<crate::core::folder::Folde
     Ok(scan)
 }
 
+/// 恢复出厂状态：清空设置、历史、收藏、下载清单与登录态。
+///
+/// 用来把应用恢复成刚安装好的样子 —— 换机器、换账号、送人试用都靠它。
+#[tauri::command]
+pub fn reset_all_data(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<crate::core::models::AppSettings, AppError> {
+    state.reset_all()?;
+    crate::session::clear_all_sessions(&app);
+    Ok(state.settings())
+}
+
 /// 读取系统剪贴板里的文字。
 ///
 /// 托盘菜单「翻找剪贴板链接」和首页的粘贴按钮都用它。
