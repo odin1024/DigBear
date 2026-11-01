@@ -1665,6 +1665,11 @@ h3 {
   font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
+  /* 有些站点的 <title> 特别长（新闻站常见），最多两行，悬停看全文 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .result-head__url {

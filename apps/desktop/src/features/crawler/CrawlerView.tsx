@@ -380,7 +380,9 @@ export function CrawlerView({
       // 只对图片生效；尺寸未知的（视频、字体等）照常保留。
       if (resource.kind !== "image") return true;
       const width = resource.width ?? 0;
-      if (width <= 0) return true;
+      // 尺寸未知的图片不算大图：留着它们会让「只看大图」形同虚设
+      // （实测抓取一个资讯站，首页混入的 logo / 图标全是无尺寸的）。
+      if (width <= 0) return false;
       return width >= minWidth;
     });
     if (sortBy === "default") return list;
@@ -1081,7 +1083,9 @@ export function CrawlerView({
                 <>
                   <div className="result-head">
                     <div className="result-head__copy">
-                      <h2>{result.title || result.host || t("未命名页面", "Untitled page")}</h2>
+                      <h2 title={result.title || undefined}>
+                        {result.title || result.host || t("未命名页面", "Untitled page")}
+                      </h2>
                       {result.enhanced && (
                         <span
                           className="result-badge"

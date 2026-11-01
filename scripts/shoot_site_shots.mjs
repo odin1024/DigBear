@@ -104,12 +104,18 @@ let crawlResult = {
 
 // 如果能拿到真实抓取结果（由 devtest 的 DIGBEAR_TEST_DUMP 导出），就用真实数据。
 const candidates = [
-  path.join(root, "_test-artifacts", "jimeng-result.json"),   // 刚抓下来的（优先）
-  path.join(root, "scripts", "fixtures", "jimeng-result.json") // 仓库里固化的样例
+  path.join(root, "_test-artifacts", "techflow-result.json"),   // 刚抓下来的（优先）
+  path.join(root, "scripts", "fixtures", "techflow-result.json") // 仓库里固化的真实抓取结果
 ];
 const realResultPath = candidates.find((f) => fs.existsSync(f));
 if (realResultPath) {
   crawlResult = JSON.parse(fs.readFileSync(realResultPath, "utf8"));
+  // 抓的是资讯站首页，里面混着大量 logo / 图标。这里只调整顺序（按像素数降序），
+  // 不增删任何数据：列表数量和原始抓取完全一致，只是让真正的配图排到前面。
+  crawlResult.resources.sort((a, b) => {
+    const area = (r) => (r.width || 0) * (r.height || 0);
+    return area(b) - area(a);
+  });
   console.log("[data] 使用真实抓取结果:", crawlResult.title, crawlResult.resources.length, "个资源");
 } else {
   console.log("[data] 未找到真实结果，使用演示数据");
@@ -289,7 +295,7 @@ async function shoot(name, prepare) {
       return r.bottom > 0 && r.top < window.innerHeight && r.width > 0;
     });
     return {
-      cards: document.querySelectorAll(".resource-card, .resource-item, [class*='resource']").length,
+      cards: document.querySelectorAll(".media-card").length,
       images: imgs.length,
       imagesOk: imgs.filter((i) => i.complete && i.naturalWidth > 0).length,
       inView: inView.length,
@@ -308,29 +314,32 @@ const report = {};
 report.home = await shoot("home", async () => {});
 
 report.results = await shoot("results", async (page) => {
-  await page.fill("#crawlUrl", "https://demo.example.com/gallery");
+  await page.fill("#crawlUrl", "https://www.techflowpost.com/");
   await page.press("#crawlUrl", "Enter");
   try {
-    await page.waitForSelector(".results-page", { timeout: 20000 });
+    await page.waitForSelector(".results-page", { timeout: 25000 });
   } catch (error) {
-    console.log("[results 失败]", JSON.stringify(errors.slice(0, 8), null, 2));
     const text = await page.evaluate(() => document.body.innerText.slice(0, 600));
-    console.log("[页面文字]", text);
+    console.log("[结果页没渲染出来]", text);
     throw error;
   }
+
   await page.waitForTimeout(1500);
-  // 外网缩略图加载慢，给更长时间，并忽略失败（单张坏了不影响整体）
+
+  // 等缩略图加载（外网慢，给 15 秒上限，单张失败不影响整体）
   await page.evaluate(async () => {
-    const wait = (img) => new Promise((resolve) => {
-      if (img.complete) return resolve();
-      img.addEventListener("load", resolve, { once: true });
-      img.addEventListener("error", resolve, { once: true });
-    });
+    const wait = (img) =>
+      new Promise((resolve) => {
+        if (img.complete) return resolve();
+        img.addEventListener("load", resolve, { once: true });
+        img.addEventListener("error", resolve, { once: true });
+      });
     await Promise.race([
       Promise.all(Array.from(document.images).map(wait)),
       new Promise((r) => setTimeout(r, 15000)),
     ]);
   });
+
   await page.waitForTimeout(800);
 });
 

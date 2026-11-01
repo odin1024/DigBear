@@ -127,7 +127,7 @@ const SHOTS = [
     id: "results",
     label: ["结果", "Results"],
     src: `${asset("/assets/shots/results.webp")}?v=${SHOT_VERSION}`,
-    caption: ["按类型筛选、排序、预览，勾选后一次性收进采集袋", "Filter by kind, sort, preview, then save the picks in one go"],
+    caption: ["截图来自真实站点抓取：深潮 TechFlow 首页，138 件资源按分辨率排序", "Real capture: TechFlow homepage — 138 assets, sorted by resolution"],
   },
   {
     id: "settings",
@@ -457,6 +457,13 @@ export default function App() {
                 />
               </AnimatePresence>
             </div>
+
+            <p className="shots__note">
+              {t(
+                "以上截图都是真实抓取的结果，没有用设计稿或演示数据代替。",
+                "Every screenshot above is a real capture — no mockups, no demo data.",
+              )}
+            </p>
           </div>
         </section>
 
