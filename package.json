@@ -16,7 +16,7 @@
     "build:desktop:macos": "pnpm --filter @dig-bear/desktop exec tauri build --bundles app",
     "build:web": "pnpm --filter @dig-bear/website build",
     "assets": "python scripts/prepare_assets.py",
-    "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --lib",
+    "test:rust": "python scripts/run_unit_tests.py",
     "package:macos": "bash scripts/package_macos.sh",
     "check-version": "python scripts/check_version.py",
     "lint:rust": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
