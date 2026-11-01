@@ -1,168 +1,102 @@
-<div align="center">
+<p align="center">
+  <img src="./docs/assets/banner.png" alt="掘掘熊 DigBear — 输入一个网址，把网页里的图片、视频、音乐与字体收进本地文件夹" width="100%" />
+</p>
 
-# 掘掘熊 · DigBear
+<p align="center">
+  <img alt="Windows 10+" src="https://img.shields.io/badge/Windows-10%2B-0078D4?style=flat-square&labelColor=FFF7E8" />
+  <img alt="版本" src="https://img.shields.io/badge/v0.4.0-33261D?style=flat-square&labelColor=FFF7E8" />
+  <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-5E9C68?style=flat-square&labelColor=FFF7E8" />
+  <img alt="本地运行" src="https://img.shields.io/badge/%E6%9C%AC%E5%9C%B0%E8%BF%90%E8%A1%8C-%E4%B8%8D%E4%B8%8A%E4%BC%A0-F0A830?style=flat-square&labelColor=FFF7E8" />
+</p>
 
-**输入一个网址，把网页里的图片、视频、音乐与字体收进本地文件夹。**
+## 它是什么
 
-<img alt="Windows 10+" src="https://img.shields.io/badge/Windows-10%2B-0078D4?style=flat-square&labelColor=FFF7E8" />
-<img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-F9C74F?style=flat-square&labelColor=FFF7E8" />
-<img alt="Rust" src="https://img.shields.io/badge/Rust-2021-33261D?style=flat-square&labelColor=FFF7E8" />
-<img alt="React" src="https://img.shields.io/badge/React-18-7FB6C9?style=flat-square&labelColor=FFF7E8" />
-<img alt="只读 · 本机" src="https://img.shields.io/badge/%E5%8F%AA%E8%AF%BB-%E6%9C%AC%E6%9C%BA-5E9C68?style=flat-square&labelColor=FFF7E8" />
-<img alt="MIT License" src="https://img.shields.io/badge/License-MIT-33261D?style=flat-square&labelColor=FFF7E8" />
+**掘掘熊（DigBear）是一个 Windows 小工具：粘贴一个网址，它帮你把那个页面里的图片、视频、音乐和字体全都找出来，你挑完再一起存到本地。**
 
-</div>
+不用懂技术，不用装插件，不用注册账号。装好之后双击打开，把网址粘进去就行。
 
-## 这是什么
+<p align="center">
+  <img src="./docs/assets/home.png" alt="掘掘熊主界面" width="100%" />
+</p>
 
-掘掘熊（DigBear）是一个跑在 **Windows** 本机的网页媒体翻找工具。粘贴任意网页地址，
-它会打开一个不可见的浏览器窗口，扫描页面里的图片、视频、音乐与字体，让你筛选后批量保存到本地。
+## 为什么值得一用
 
-没有云端、没有账号、没有遥测；需要登录的站点也只在你自己的 WebView 里手动登录，
-Cookie 不会离开这台电脑。
+- **一个网址，四类素材一起找** —— 图片、视频、音乐、字体同时扫出来，不用来回换工具。
+- **画质往高处挑** —— 同一张图有多个分辨率时优先给最大的；视频会尽量取最高画质那一档。
+- **挑完再存** —— 结果先列成清单，按类型筛选、看大图预览，勾好了点一下批量下载。
+- **需要登录的站点也能用** —— 在内置窗口里登录一次即可；登录状态只存在你自己的电脑上。
+- **不白等** —— 下载断了会自己接着来，失败会重试，已经下过的文件下次自动跳过。
+- **数据不出门** —— 只读取网页，不上传任何素材，没有账号、没有遥测。
 
-> 本项目是 [Crawl Bear（超级爬爬熊）](https://github.com/xw-meow/crawl-bear) 的 Windows 移植版，
-> 上游为 macOS 版本，采用 MIT 许可证。**技术分析与逐文件改动说明见 [`PORTING.md`](./PORTING.md)。**
+## 下载安装
 
-## 功能
+到 **[Releases](https://github.com/odin1024/DigBear/releases/latest)** 页面下载：
 
-- **通用发现**：不绑定特定网站，任意 `http(s)` 地址都能扫出媒体资源。
-- **四类资源**：图片、视频、音频、字体 —— 分别来自 DOM、CSSOM、`performance` 资源计时、
-  以及页面源码里的 HLS/DASH 清单，共 12 种采集来源。
-- **勾选下载**：按类型过滤、预览、批量保存；直链走 `curl`，HLS/DASH 走 FFmpeg 重封装。
-- **需要登录的站点**：在应用内打开的窗口里手动登录一次即可，登录态保存在本机 WebView 数据目录。
-- **高清优先**：X（Twitter）优先取 master playlist；YouTube 走 innertube 接口取最高清的
-  H.264 视频流与 AAC 音轨，再合并。
-- **系统代理**：支持 `HTTPS_PROXY` 等环境变量，以及 Windows 的 WinINET 系统代理设置。
-- **浏览器扩展**：Chrome / Edge 扩展一键把当前页交给掘掘熊翻找。
-- **深链唤起**：注册 `digbear://` 协议，链接、脚本都能直接触发翻找。
-- **资源管理器右键**：右键文件夹 →「用掘掘熊翻找链接」，自动收集本地快捷方式与文本里的网址。
-- **批量队列**：一次提交多个网址排队翻找，结果合并成一份清单。
-- **历史与收藏**：常翻的站点一键再来，最近翻找自动记录。
-
-## 先试试看（不用装任何东西）
-
-仓库里带了一个可直接双击运行的预览版：
-
-```
-build-preview\dig-bear.exe
-```
-
-双击即可运行，窗口标题是「掘掘熊 · DigBear」。
-（旁边的三个 DLL 不能删、不能移动。）
-
-> 这个预览版是 GNU 工具链编的 release 构建（约 40 MB），仅用于先体验功能；
-> 正式安装包需要 MSVC Build Tools，额外产出 NSIS / MSI 安装程序。
-> 详细说明见 [`docs/PREVIEW.md`](./docs/PREVIEW.md)。
-
-## 下载
-
-安装包见 [Releases](https://github.com/odin1024/DigBear/releases)：
-
-| 格式 | 说明 |
+| 文件 | 适合谁 |
 | --- | --- |
-| `DigBear_*_x64-setup.exe` | NSIS 安装包，推荐个人使用 |
-| `DigBear_*_x64_*.msi` | MSI，便于企业批量部署 |
+| `DigBear_0.4.0_x64-setup.exe` | **推荐**，双击安装，个人用户用这个 |
+| `DigBear_0.4.0_x64_zh-CN.msi` | 需要批量部署的（企业 / 机房） |
+| `DigBear_extension_v0.4.0.zip` | 可选：浏览器扩展，一键把当前网页交给掘掘熊 |
 
-> 应用**未做代码签名**，首次运行 Windows SmartScreen 会拦截，
-> 点「更多信息 → 仍要运行」即可。
+**三步就能用起来：**
 
-## 从源码构建
+1. 下载 `setup.exe`，双击运行
+2. 如果 Windows 弹「已保护你的电脑」，点 **更多信息 → 仍要运行**（应用没有购买代码签名证书，不是病毒）
+3. 打开掘掘熊，粘贴网址，点「开始翻找」→ 挑素材 → 下载
 
-### 前置依赖
+> 系统要求：Windows 10（1809 及以上）或 Windows 11，64 位。
+> Win11 自带所需运行环境；Win10 如果提示缺少 WebView2，点一下安装即可。
+> 下载前可以用附带的 `SHA256SUMS` 校验文件完整性。
 
-| 依赖 | 说明 |
-| --- | --- |
-| **Microsoft C++ Build Tools** | 安装 **「使用 C++ 的桌面开发」** 工作负载（含 MSVC 链接器与 Windows SDK）。**缺 `link.exe` 会直接编译失败** |
-| Node.js ≥ 20 | 构建前端 |
-| pnpm 12 | 依赖管理 |
-| Rust stable（`x86_64-pc-windows-msvc`） | 后端 |
-| WebView2 Runtime | 运行时；Win11 自带，Win10 可能需要单独安装 |
+## 用起来大概是这样
 
-安装 Build Tools：
+1. **粘贴网址** —— 支持直接粘贴剪贴板里的链接，也可以一次排队多个网址。
+2. **等它翻找** —— 页面在后台静默打开扫描，界面会显示进度。
+3. **挑** —— 按图片 / 视频 / 音乐 / 字体分类查看，可只看大图，也可一键全收。
+4. **存** —— 选好保存目录，批量下载；支持自定义文件名规则、按类型分文件夹。
+
+设置里还有：深色主题、下载失败自动重试、下载前检查磁盘空间、历史记录与收藏。
+
+## 会碰到的小问题
+
+- 页面里那些看不见的**追踪像素**（没有扩展名的小图）也会被当成图片列出来，手动排除一下即可。
+- **网页里正在边下边播的视频流**（`blob:` 这类）暂时抓不到，需要后续版本支持。
+- 网页里**手动改了背景图**、但代码没在页面源码里体现的，可能扫不到。
+- 资源特别多的页面（1000+）会需要多等一会儿。
+
+## 反馈与建议
+
+遇到问题、有好想法，或者想提一条建议？
+
+<p align="center">
+  <img src="./apps/website/public/assets/author-qr.png" alt="掘掘熊公众号二维码" width="200" />
+</p>
+
+- **公众号**：微信扫一扫关注后直接留言，反馈会更快看到
+- **GitHub Issue**：功能建议、缺陷报告都欢迎，[点这里提交](https://github.com/odin1024/DigBear/issues)
+- 应用内「关于」页也能扫到同一个二维码
+
+> 反馈时如果能带上目标网址和复现步骤，会省下很多来回沟通。
+
+## 许可与致谢
+
+本项目使用 **MIT 许可证**，可自由使用、修改与分发。
+致敬上游开源项目 [Crawl Bear（超级爬爬熊）](https://github.com/xw-meow/crawl-bear) 与作者 [xw-meow](https://github.com/xw-meow)。
+详细许可见 [LICENSE](./LICENSE) 与 [NOTICE.md](./NOTICE.md)。
+
+---
+
+<details>
+<summary><b>给开发者：从源码构建</b></summary>
+
+需要 Windows + Node.js 20+、pnpm 12、Rust stable、Microsoft C++ Build Tools。
 
 ```powershell
-winget install Microsoft.VisualStudio.2022.BuildTools `
-  --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-```
-
-### 命令
-
-```bash
 pnpm install
-pnpm test:rust              # Rust 单元测试
-pnpm build:desktop:windows  # 产出 NSIS + MSI
+pnpm test:rust          # 单元测试
+powershell -File scripts/build_windows.ps1   # 产出 NSIS + MSI
 ```
 
-产物：
+文档：[更新日志](./CHANGELOG.md) · [开发规范](./docs/CONTRIBUTING.md) · [发布流程](./docs/RELEASES.md) · [路线图](./docs/ROADMAP.md) · [移植记录](./PORTING.md)
 
-```
-apps/desktop/src-tauri/target/release/bundle/nsis/DigBear_0.4.0_x64-setup.exe
-apps/desktop/src-tauri/target/release/bundle/msi/DigBear_0.4.0_x64_en-US.msi
-```
-
-### FFmpeg（可选）
-
-HLS/DASH 下载与音视频合并需要 FFmpeg。应用内
-**设置 → 扩展管理** 提供一键安装，安装的是应用私有的副本，不会污染系统 `PATH`。
-
-## 本地数据
-
-设置、历史记录、收藏、下载清单与登录状态都存在本机，不上传服务器。
-
-- **位置**：Windows 下在 `%APPDATA%\com.digbear.desktop`
-- **一键清空**：设置页 →「数据与关于」→ **恢复出厂设置**，
-  会清空历史、收藏、下载清单、登录状态和所有设置，回到刚装好的样子
-- **免安装预览版**：仓库里的 `build-preview\dig-bear.exe` 会在同目录放一个
-  `digbear-preview.marker` 标记文件，用它时数据写到 `%APPDATA%\com.digbear.desktop\preview`，
-  和正式安装版互不干扰
-
-## 隐私
-
-- 只做只读发现，不向远程页面注入 Tauri IPC，不上传任何数据。
-- 下载只允许 `http` / `https`，拒绝 `file:`、`javascript:`、`data:`。
-- 登录信息只存在本机的 WebView 数据目录，不上传、不导出。
-
-## 已知限制
-
-- 第三方追踪像素（无扩展名的 `<img>`）会被识别为图片，需要手动过滤。
-- `blob:` 流（MSE / 实时 HLS）、iframe 内部资源、closed shadow DOM 抓不到。
-- 脚本在提取之后才设置的背景图抓不到。
-
-## 开发与发布
-
-```bash
-pnpm install
-pnpm test:rust           # Rust 单元测试
-pnpm build               # 前端构建
-pnpm check-version       # 校验 8 处版本号一致
-pnpm build:desktop:windows
-```
-
-| 文档 | 内容 |
-| --- | --- |
-| [`CHANGELOG.md`](./CHANGELOG.md) | 更新日志（Keep a Changelog 格式） |
-| [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) | 开发规范：分支、提交信息、代码风格、测试要求 |
-| [`docs/RELEASES.md`](./docs/RELEASES.md) | 发布规范：版本策略、发布流程、产物要求 |
-| [`docs/ROADMAP.md`](./docs/ROADMAP.md) | 待优化清单 |
-| [`PORTING.md`](./PORTING.md) | 从 macOS 到 Windows 的分析与实施记录 |
-
-提交信息遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)。
-
-## 致谢
-
-上游作者 [xw-meow](https://github.com/xw-meow) 与所有贡献者。许可与致谢见 [`NOTICE.md`](./NOTICE.md)。
-
-## 联系与反馈
-
-遇到问题、有好想法，或者想提一条建议？欢迎直接联系：
-
-<div align="center">
-  <img src="./apps/website/public/assets/author-qr.png" alt="掘掘熊公众号二维码" width="220" />
-</div>
-
-- **公众号**：微信扫一扫，关注「掘掘熊」后直接留言，反馈会更快看到。
-- **GitHub Issue**：功能建议、缺陷报告都可以提 issue（仓库地址公布后在此更新）。
-- **应用内**：打开「关于」页也能扫到同一个二维码。
-
-> 反馈问题时如果能附上目标网址、复现步骤和截图，会更省时间。
+</details>

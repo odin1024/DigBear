@@ -60,9 +60,12 @@ jobs:
       - name: Checksums
         shell: pwsh
         run: |
-          Get-ChildItem dist -File | Get-FileHash -Algorithm SHA256 |
+          # 排除 SHA256SUMS 自己，并且用 ASCII 写：带 BOM 会让 sha256sum 校验失败。
+          Get-ChildItem dist -File |
+            Where-Object { $_.Name -ne "SHA256SUMS" } |
+            Get-FileHash -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } |
-            Out-File -Encoding utf8 dist/SHA256SUMS
+            Out-File -Encoding ascii dist/SHA256SUMS
 
       - uses: actions/upload-artifact@v4
         with:
@@ -88,66 +91,3 @@ jobs:
             }
           }
           gh release upload $tag @files dist/SHA256SUMS --clobber
-
-  macos:
-    name: Build macOS package
-    runs-on: macos-14
-    timeout-minutes: 60
-    # 目前只面向 Windows 发布：macOS 产物是顺带的，别让它拖垮整个流水线。
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.14.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: apps/desktop/src-tauri -> target
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build universal macOS package
-        env:
-          TAURI_TARGET: universal-apple-darwin
-        run: pnpm package:macos
-
-      - name: Checksums
-        run: shasum -a 256 dist/DigBear-macOS.pkg dist/DigBear-macOS.zip > dist/SHA256SUMS
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: digbear-macos
-          path: |
-            dist/DigBear-macOS.pkg
-            dist/DigBear-macOS.zip
-            dist/SHA256SUMS
-          if-no-files-found: error
-
-      - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="$GITHUB_REF_NAME"
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --title "DigBear $TAG" \
-              --notes "macOS 安装包。应用未经过 Apple 公证，首次打开请按 docs/INSTALL-macOS.md 放行。"
-          fi
-          gh release upload "$TAG" \
-            dist/DigBear-macOS.pkg \
-            dist/DigBear-macOS.zip \
-            dist/SHA256SUMS \
-            --clobber
