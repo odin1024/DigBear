@@ -32,7 +32,7 @@ def conf_version(path):
 
 
 def ts_version(path):
-    m = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', read(path))
+    m = re.search(r'(?:APP_)?VERSION\s*=\s*"([^"]+)"', read(path))
     return m.group(1) if m else None
 
 
@@ -43,6 +43,8 @@ SOURCES = [
     ("apps/desktop/src-tauri/Cargo.toml", toml_version),
     ("apps/desktop/src-tauri/tauri.conf.json", conf_version),
     ("apps/desktop/src/shared/version.ts", ts_version),
+    ("apps/website/src/version.ts", ts_version),
+    ("apps/extension/manifest.json", conf_version),
 ]
 
 

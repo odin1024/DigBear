@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { App as AntApp } from "antd";
 import { isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -6,17 +6,18 @@ import { api, type AppSettings } from "../shared/api";
 import { toAppError, type AppError } from "../shared/errors";
 import { Masthead, type AppView } from "./Masthead";
 import { detectLocale, resolveLocale, setLocale, t } from "../shared/i18n";
-import { APP_VERSION } from "../shared/version";
-import { cssVarsFor, DEFAULT_THEME, type ThemeName } from "../theme";
+import { cssVarsFor, DEFAULT_THEME, THEME_NAMES, type ThemeName } from "../theme";
+import { REPO_URL } from "../shared/version";
 import { CrawlerView } from "../features/crawler/CrawlerView";
 import { SettingsView } from "../features/settings/SettingsView";
+import { AboutView } from "../features/about/AboutView";
 
 interface AppProps {
   onThemeChange: (name: ThemeName) => void;
 }
 
 export default function App({ onThemeChange }: AppProps) {
-  const { message, modal } = AntApp.useApp();
+  const { message } = AntApp.useApp();
   const [inTauriApp] = useState(() => isTauri());
 
   const [view, setView] = useState<AppView>("crawler");
@@ -128,32 +129,30 @@ export default function App({ onThemeChange }: AppProps) {
     return () => window.clearTimeout(timer);
   }, [settingsLoading, settingsWarm]);
 
-  const showAbout = useCallback(() => {
-    modal.info({
-      title: t("关于掘掘熊", "About DigBear"),
-      centered: true,
-      okText: t("知道了", "Got it"),
-      className: "about-modal",
-      content: (
-        <div className="about-modal__body">
-          <p className="about-modal__name">{t("掘掘熊 · DigBear", "DigBear")}</p>
-          <p>
-            {t(
-              "一款开源的网页媒体翻找小工具，只在你的电脑上只读工作。",
-              "An open-source media crawler that only reads pages locally on your computer.",
-            )}
-          </p>
-          <p>
-            {t(
-              "我们鼓励把它用于学习与个人素材整理，不提倡、也不鼓励用于任何不当用途。请遵守目标网站的服务条款与著作权法律，只保存你有权使用的内容。",
-              "Use it for learning and organizing your own media. Respect each site's terms and copyright; save only content you are allowed to use.",
-            )}
-          </p>
-          <p className="about-modal__version">v{APP_VERSION}</p>
-        </div>
-      ),
-    });
-  }, [modal]);
+  const openAbout = useCallback(() => setView("about"), []);
+
+  /* 原生菜单里的「视图 → 主题」：立即生效并写回设置。 */
+  const settingsRef = useRef<AppSettings | null>(null);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const applyTheme = useCallback(
+    (name: string) => {
+      const theme = (THEME_NAMES as readonly string[]).includes(name)
+        ? (name as ThemeName)
+        : DEFAULT_THEME;
+      onThemeChange(theme);
+      const current = settingsRef.current;
+      if (!current) return;
+      const next = { ...current, theme };
+      setSettings(next);
+      void api.saveSettings(next).catch(() => {
+        message.error(t("保存主题失败。", "Could not save the theme."));
+      });
+    },
+    [message, onThemeChange]
+  );
 
   /* Native app menu: only 设置 / 关于. */
   useEffect(() => {
@@ -161,8 +160,21 @@ export default function App({ onThemeChange }: AppProps) {
     let disposed = false;
     let unlisten: (() => void) | undefined;
     listen<string>("app-menu", (event) => {
-      if (event.payload === "settings") setView("settings");
-      else if (event.payload === "about") showAbout();
+      const id = event.payload;
+      if (id === "settings") setView("settings");
+      else if (id === "about") openAbout();
+      else if (id === "crawler") {
+        setResetSignal((value) => value + 1);
+        setView("crawler");
+      } else if (id === "repo") {
+        if (REPO_URL) {
+          void api.openUrl(REPO_URL);
+        } else {
+          message.info(t("开源仓库地址待公布。", "The repository URL is coming soon."));
+        }
+      } else if (id.startsWith("theme:")) {
+        applyTheme(id.slice("theme:".length));
+      }
     })
       .then((off) => {
         if (disposed) off();
@@ -175,7 +187,7 @@ export default function App({ onThemeChange }: AppProps) {
       disposed = true;
       unlisten?.();
     };
-  }, [inTauriApp, showAbout]);
+  }, [inTauriApp, openAbout, applyTheme]);
 
   /* The app is a tool, not a document: no browser context menu, no text selection. */
   useEffect(() => {
@@ -222,6 +234,10 @@ export default function App({ onThemeChange }: AppProps) {
             initialFolder={pendingFolder}
             onOpenSettings={openSettings}
           />
+        </div>
+
+        <div className="view-slot view-slot--about" hidden={view !== "about"}>
+          <AboutView onOpenSettings={() => setView("settings")} />
         </div>
 
         <div className="view-slot view-slot--settings" hidden={view !== "settings"}>

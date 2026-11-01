@@ -16,6 +16,7 @@ import {
   SparkIcon,
 } from "./components/Icons";
 import { SmartImage } from "./components/SmartImage";
+import { VERSION } from "./version";
 
 /**
  * 源码仓库地址。发布时填成实际地址（例如 https://github.com/<org>/dig-bear）。
@@ -524,7 +525,7 @@ export default function App() {
                     <strong>{t("还是被拦？检查一下系统设置", "Still blocked? Check your system settings")}</strong>
                     <p>
                       {t("打开「Windows 安全中心 → 保护历史记录」，允许这个安装包运行。", "Open Windows Security → Protection history and allow the installer.")}
-                      <code>DigBear_0.4.0_x64-setup.exe</code>
+                      <code>DigBear_{VERSION}_x64-setup.exe</code>
                       {t("然后重新运行安装包。", "Then run the installer again.")}
                     </p>
                   </div>
@@ -602,7 +603,24 @@ export default function App() {
           <a href="#features">{t("功能", "Features")}</a>
           <a href="#download">{t("下载", "Download")}</a>
         </nav>
+        <div className="footer__contact">
+          <img
+            className="footer__qr"
+            src={asset("/assets/author-qr.png")}
+            alt={t("作者公众号二维码", "Author's WeChat official account QR code")}
+          />
+          <div className="footer__contact-text">
+            <strong>{t("扫码联系作者", "Reach the author")}</strong>
+            <p>
+              {t(
+                "遇到问题、有建议或想提一条需求，欢迎公众号留言，反馈会更快看到。",
+                "Questions, ideas or feature requests? Leave a message on the official account — replies come faster there.",
+              )}
+            </p>
+          </div>
+        </div>
         <p className="footer__note">
+          <span className="footer__version">v{VERSION}</span>
           {t("仅用于保存你有权使用的内容，请遵守目标网站条款与著作权法律。", "Only save content you have the right to use. Respect site terms and copyright law.")}
         </p>
       </footer>

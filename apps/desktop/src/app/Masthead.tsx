@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PawIcon, SlidersIcon } from "../shared/components/Icons";
+import { InfoIcon, PawIcon, SlidersIcon } from "../shared/components/Icons";
 import { t } from "../shared/i18n";
 
-export type AppView = "crawler" | "settings";
+export type AppView = "crawler" | "settings" | "about";
 
 interface MastheadProps {
   view: AppView;
@@ -81,6 +81,15 @@ export function Masthead({ view, onNavigate }: MastheadProps) {
           >
             <SlidersIcon size={15} />
             {t("设置", "Settings")}
+          </button>
+          <button
+            type="button"
+            className="main-nav__item"
+            aria-current={view === "about" ? "page" : undefined}
+            onClick={() => onNavigate("about")}
+          >
+            <InfoIcon size={15} />
+            {t("关于", "About")}
           </button>
         </nav>
       </div>

@@ -10,15 +10,23 @@ use tauri::menu::{Menu, MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuIt
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
-/// Replace the default File/Edit/View/Window/Help bar with a tiny app menu:
-/// only 设置 and 关于 (plus the standard macOS quit item).
+/// 自定义原生菜单栏。
+///
+/// 结构与界面顶部的导航保持一致：
+/// - DigBear：翻找 / 设置 / 关于
+/// - 编辑：撤销 / 重做 / 剪切 / 复制 / 粘贴 / 全选
+/// - 视图：三套主题
+/// - 帮助：开源仓库 / 使用说明
+///
+/// Windows 上这是标题栏下方的菜单条，macOS 上是系统菜单栏。
 pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Result<()> {
+    let crawler = MenuItemBuilder::with_id("crawler", if english { "Crawl" } else { "翻找" }).build(app)?;
     let about = MenuItemBuilder::with_id("about", if english { "About" } else { "关于" }).build(app)?;
     let settings = MenuItemBuilder::with_id("settings", if english { "Settings…" } else { "设置…" }).build(app)?;
-    let quit = PredefinedMenuItem::quit(app, Some(if english { "Quit DigBear" } else { "退出 DigBear" }))?;
+    let quit = PredefinedMenuItem::quit(app, Some(if english { "Quit DigBear" } else { "退出掘掘熊" }))?;
 
     let app_menu = SubmenuBuilder::new(app, "DigBear")
-        .items(&[&about, &settings])
+        .items(&[&crawler, &settings, &about])
         .separator()
         .item(&quit)
         .build()?;
@@ -38,7 +46,23 @@ pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Re
         .item(&select_all)
         .build()?;
 
-    let menu = MenuBuilder::new(app).items(&[&app_menu, &edit_menu]).build()?;
+    let view_title = if english { "View" } else { "视图" };
+    let theme_lantern = MenuItemBuilder::with_id("theme:lantern", if english { "Lantern" } else { "矿灯紫琥珀" }).build(app)?;
+    let theme_forest = MenuItemBuilder::with_id("theme:forest", if english { "Forest" } else { "森林手账" }).build(app)?;
+    let theme_night = MenuItemBuilder::with_id("theme:night", if english { "Night mine" } else { "夜矿深色" }).build(app)?;
+    let view_menu = SubmenuBuilder::new(app, view_title)
+        .items(&[&theme_lantern, &theme_forest, &theme_night])
+        .build()?;
+
+    let help_title = if english { "Help" } else { "帮助" };
+    let repo = MenuItemBuilder::with_id("repo", if english { "Source Code" } else { "开源仓库" }).build(app)?;
+    let help_menu = SubmenuBuilder::new(app, help_title)
+        .items(&[&repo])
+        .build()?;
+
+    let menu = MenuBuilder::new(app)
+        .items(&[&app_menu, &edit_menu, &view_menu, &help_menu])
+        .build()?;
     app.set_menu(menu)?;
     Ok(())
 }
