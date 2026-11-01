@@ -230,7 +230,7 @@
 ### 6.6 小熊插画
 
 - 组件 `<Mascot mood size />`，mood：`hero | idle | crawl | empty | happy | error | login`。
-- 默认使用内置 SVG（见 `src/shared/components/Mascot.tsx`）；如果 `public/assets/bear-<mood>.png` 存在，优先使用生成图，加载失败自动回退 SVG。
+- 默认使用内置 SVG（见 `src/shared/components/Mascot.tsx`）；如果 `public/assets/bear-<mood>.webp` 存在，优先使用生成图，加载失败自动回退 SVG。
 - 插画不得带文字；文字一律走气泡组件。
 
 ### 6.7 系统级细节

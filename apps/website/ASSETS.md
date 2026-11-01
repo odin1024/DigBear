@@ -104,6 +104,7 @@ transparent margin. No text, no logos, no brand marks.
 
 ## 6. 无需生成的图
 
-- 应用界面截图：由 `assets/readme/` 同步到 `public/assets/shots/`；
+- 应用界面截图：由 `scripts/shoot_site_shots.mjs` 生成（本地演示站点 + 假 IPC，
+  数据全部自造），直接输出到 `public/assets/shots/`；
 - 小熊插画、底纹、Logo：由根目录 `scripts/prepare_assets.py` 同步到 `public/assets/brand/`；
 - 这些图已在仓库里，不需要重复生成。

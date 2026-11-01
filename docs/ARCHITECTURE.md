@@ -60,7 +60,7 @@
 | `src/features/crawler/` | 地址输入、筛选器、资源列表、下载栏、状态 hooks |
 | `src/features/settings/` | 保存目录、默认过滤、并发、登录站点管理 |
 | `src/shared/` | Tauri API 封装、共享类型、通用组件/格式化函数 |
-| `src/shared/components/Mascot.tsx` | 内置 SVG 小熊；检测到 `public/assets/bear-<mood>.png` 时自动换成生成插画 |
+| `src/shared/components/Mascot.tsx` | 内置 SVG 小熊；检测到 `public/assets/bear-<mood>.webp` 时自动换成生成插画 |
 | `src/features/*/components` | 只负责展示，不直接调用 Tauri；动效由 framer-motion 编排 |
 
 ## 3. 关键数据流
