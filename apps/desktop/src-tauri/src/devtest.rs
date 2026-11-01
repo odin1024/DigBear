@@ -79,8 +79,24 @@ pub fn maybe_spawn(handle: AppHandle) {
                 "[digbear][test] crawl ok host={} title={} counts={:?} warnings={:?}",
                 result.host, result.title, result.counts, result.warnings
             );
-            for resource in result.resources.iter().filter(|r| matches!(r.kind, crate::core::models::MediaKind::Video)).take(5) {
+            for resource in result
+                .resources
+                .iter()
+                .filter(|r| matches!(r.kind, crate::core::models::MediaKind::Video))
+                .take(5)
+            {
                 eprintln!("[digbear][test] video url={}", resource.url);
+            }
+
+            // 把完整结果导出成 JSON，供官网截图脚本复用真实抓取数据。
+            if let Ok(dump_path) = std::env::var("DIGBEAR_TEST_DUMP") {
+                match serde_json::to_string_pretty(&result) {
+                    Ok(json) => {
+                        let _ = std::fs::write(&dump_path, json);
+                        eprintln!("[digbear][test] dump -> {}", dump_path);
+                    }
+                    Err(error) => eprintln!("[digbear][test] dump failed: {error}"),
+                }
             }
             let autoexit = std::env::var("DIGBEAR_TEST_AUTOEXIT").ok().as_deref() == Some("1");
             if std::env::var("DIGBEAR_TEST_DOWNLOAD")
