@@ -553,6 +553,22 @@ h3 {
   text-decoration-color: var(--berry-deep);
 }
 
+/* 强调型文字链接：「全收下」这类主动作 */
+.rb-text-link--strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.rb-text-link--strong:hover {
+  color: var(--berry-deep);
+}
+
+.rb-text-link:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  text-decoration-color: transparent;
+}
+
 .is-spinning {
   animation: spin 0.8s linear infinite;
 }

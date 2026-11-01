@@ -3,6 +3,7 @@ pub mod disk;
 pub mod config;
 pub mod error;
 pub mod history;
+pub mod manifest;
 pub mod models;
 pub mod naming;
 pub mod net;

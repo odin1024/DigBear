@@ -601,15 +601,24 @@ export function CrawlerView({
     });
   };
 
-  const handleDownload = async () => {
-    if (downloading || selectedResources.length === 0 || !result) return;
+  /** 一键收下当前筛选出来的全部资源。 */
+  const handleDownloadAll = async () => {
+    if (downloading || visibleResources.length === 0 || !result) return;
+    const targets = visibleResources;
+    setSelected(new Set(targets.map((resource) => resource.id)));
+    await handleDownload(targets);
+  };
+
+  const handleDownload = async (explicit?: MediaResource[]) => {
+    const targets = explicit ?? selectedResources;
+    if (downloading || targets.length === 0 || !result) return;
 
     setDownloading(true);
     setSummary(null);
     setStatuses({});
     setDownloadProgress({
       completed: 0,
-      total: selectedResources.length,
+      total: targets.length,
       current_id: null,
       current_name: null,
     });
@@ -617,7 +626,7 @@ export function CrawlerView({
     try {
       const next = await api.download({
         page_url: result.final_url || result.page_url,
-        items: selectedResources.map((resource) => ({
+        items: targets.map((resource) => ({
           id: resource.id,
           url: resource.url,
           kind: resource.kind,
@@ -627,12 +636,26 @@ export function CrawlerView({
       setSummary(next);
       setStatuses(statusesFromSummary(next));
       setSelected(new Set(next.failures.map((failure) => failure.id)));
+      const skipped = next.skipped_count ?? 0;
+      const skippedNote = skipped
+        ? t(`（${skipped} 件之前下过，已跳过）`, `(${skipped} already downloaded, skipped)`)
+        : "";
       if (next.canceled) {
         message.info(t("下载已取消。", "Download canceled."));
       } else if (next.failed_count > 0) {
-        message.warning(t(`收好了 ${next.success_count} 件，${next.failed_count} 件没收到。`, `Saved ${next.success_count}, ${next.failed_count} failed.`));
+        message.warning(
+          t(
+            `收好了 ${next.success_count} 件，${next.failed_count} 件没收到。${skippedNote}`,
+            `Saved ${next.success_count}, ${next.failed_count} failed.${skippedNote}`
+          )
+        );
       } else {
-        message.success(t(`收好了，${next.success_count} 件都在袋子里。`, `Saved ${next.success_count} items to your collection.`));
+        message.success(
+          t(
+            `收好了，${next.success_count} 件都在袋子里。${skippedNote}`,
+            `Saved ${next.success_count} items to your collection.${skippedNote}`
+          )
+        );
       }
     } catch (error) {
       message.error(toAppError(error).message);
@@ -1071,6 +1094,21 @@ export function CrawlerView({
                             </button>
                           )}
                           <div className="result-toolbar__export">
+                            <button
+                              type="button"
+                              className="rb-text-link rb-text-link--strong"
+                              disabled={downloading || visibleResources.length === 0}
+                              title={t(
+                                "把当前筛选出来的全部资源一次收下",
+                                "Save every resource matching the current filter"
+                              )}
+                              onClick={() => void handleDownloadAll()}
+                            >
+                              {t(
+                                `全收下（${visibleResources.length}）`,
+                                `Save all (${visibleResources.length})`
+                              )}
+                            </button>
                             <button
                               type="button"
                               className="rb-text-link"

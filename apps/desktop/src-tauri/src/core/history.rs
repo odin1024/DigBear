@@ -132,7 +132,7 @@ fn entry_key(url: &str) -> String {
 
 fn read_json<T: for<'de> Deserialize<'de> + Default>(path: &Path) -> T {
     match std::fs::read_to_string(path) {
-        Ok(raw) => serde_json::from_str(&raw).unwrap_or_else(|error| {
+        Ok(raw) => serde_json::from_str(raw.strip_prefix('\u{feff}').unwrap_or(&raw)).unwrap_or_else(|error| {
             eprintln!("[digbear] 读取 {} 失败: {error}", path.display());
             T::default()
         }),

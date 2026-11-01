@@ -45,6 +45,24 @@
 - pnpm 会跳过 `@tauri-apps/cli` 的 Windows 平台二进制包，导致 `tauri` 命令不可用；
   改为在 `apps/desktop/package.json` 的 `optionalDependencies` 里显式声明
 
+### 新增 · 一键全收下与下载清单
+
+- 结果页工具栏新增「全收下（N）」：把当前筛选出来的资源一次收进采集袋，不用逐个勾选
+- 新增 `core/manifest.rs`：下载完成的资源记进配置目录的 `downloads.json`
+- 再次翻到同一个页面时，已经下过、文件还在的资源直接跳过，不再重走一遍网络；
+  结果页提示里会说明「N 件之前下过，已跳过」
+- 下载清单每完成 5 件落一次盘，长任务中途被打断也不丢记录
+
+### 修复 · 下载稳定性
+
+- 去掉 curl 自带的 `--retry 3`：它会和外层重试层叠加，一个文件最坏要等 3×900 秒才放弃
+- 改用 `--speed-limit/--speed-time`：连接长时间零速时快速失败，而不是干等
+- 单文件时间上限从 900 秒放宽到 1800 秒，慢速网络下的大文件能下完
+- **断点续传**：重试时用 `curl -C -` 接着已有的半成品继续下，
+  服务器不支持 Range 时自动删掉半成品从头再来
+- 读取 JSON 配置时剥掉 UTF-8 BOM：Windows 记事本与 PowerShell 写出的 BOM
+  会让 serde_json 直接报「expected value at line 1 column 1」
+
 ### 工程
 
 - 新增 `scripts/build_windows.ps1`：把源码同步到纯 ASCII 路径的构建目录，

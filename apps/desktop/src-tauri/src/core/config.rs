@@ -26,7 +26,7 @@ impl SettingsStore {
         let path = dir.join("settings.json");
         let data = if path.exists() {
             match std::fs::read_to_string(&path) {
-                Ok(raw) => serde_json::from_str::<AppSettings>(&raw)
+                Ok(raw) => serde_json::from_str::<AppSettings>(strip_bom(&raw))
                     .map(|settings| settings.normalized())
                     .unwrap_or_else(|e| {
                         eprintln!("[digbear] settings parse failed: {e}");
@@ -74,6 +74,15 @@ impl SettingsStore {
         std::fs::rename(&temp, &self.path)?;
         Ok(())
     }
+}
+
+
+/// 去掉 UTF-8 BOM。
+///
+/// Windows 记事本、PowerShell 的 `Set-Content -Encoding UTF8` 都会写 BOM，
+/// 而 serde_json 不认 BOM，会直接报「expected value at line 1 column 1」。
+fn strip_bom(raw: &str) -> &str {
+    raw.strip_prefix('﻿').unwrap_or(raw)
 }
 
 fn converted_exists(path: &std::path::Path) -> bool {

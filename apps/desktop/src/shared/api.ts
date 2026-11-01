@@ -97,6 +97,8 @@ export interface DownloadSummary {
   total: number;
   success_count: number;
   failed_count: number;
+  /** 之前已经下载过、这次直接跳过的数量。 */
+  skipped_count: number;
   files: DownloadFile[];
   failures: DownloadFailure[];
   canceled: boolean;

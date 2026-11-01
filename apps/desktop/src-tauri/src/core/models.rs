@@ -211,6 +211,9 @@ pub struct DownloadSummary {
     pub total: usize,
     pub success_count: usize,
     pub failed_count: usize,
+    /// 之前已经下载过、这次直接跳过的数量。
+    #[serde(default)]
+    pub skipped_count: usize,
     pub files: Vec<DownloadFile>,
     pub failures: Vec<DownloadFailure>,
     pub canceled: bool,

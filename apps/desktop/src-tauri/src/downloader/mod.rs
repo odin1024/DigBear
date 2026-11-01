@@ -56,6 +56,7 @@ pub async fn download_batch(
         total,
         success_count: 0,
         failed_count: 0,
+        skipped_count: 0,
         files: Vec::new(),
         failures: Vec::new(),
         canceled: false,
@@ -79,6 +80,34 @@ pub async fn download_batch(
             let Some((index, item)) = items.next() else {
                 break;
             };
+            // 之前已经下载过、文件还在的，直接跳过，不再走一遍网络。
+            if let Some(known) = state.manifest.lookup(&item.url) {
+                completed += 1;
+                summary.skipped_count += 1;
+                summary.success_count += 1;
+                summary.files.push(DownloadFile {
+                    id: item.id.clone(),
+                    url: item.url.clone(),
+                    path: PathBuf::from(&known.folder).join(&known.filename)
+                        .to_string_lossy()
+                        .to_string(),
+                    filename: known.filename.clone(),
+                    size: known.size,
+                    kind: item.kind,
+                });
+                let _ = app.emit(
+                    "download-item",
+                    DownloadItemEvent {
+                        id: item.id.clone(),
+                        status: "success".to_string(),
+                        path: Some(known.filename.clone()),
+                        error: None,
+                    },
+                );
+                emit_progress(app, completed, total, Some(item.id.clone()), Some(known.filename));
+                continue;
+            }
+
             let item_url = Url::parse(&item.url).ok();
             let stem = paths::filename_stem_with_template(
                 &item,
@@ -150,7 +179,10 @@ pub async fn download_batch(
         {
             Ok(Some(Ok(outcome))) => {
                 completed += 1;
-                apply_outcome(app, &mut summary, outcome, completed, total);
+                apply_outcome(app, &mut summary, outcome, completed, total, Some(&state.manifest));
+                if completed % 5 == 0 {
+                    let _ = state.manifest.persist();
+                }
             }
             Ok(Some(Err(error))) => {
                 eprintln!("[digbear] download worker failed: {error}");
@@ -172,10 +204,18 @@ pub async fn download_batch(
     while let Some(joined) = tasks.join_next().await {
         if let Ok(outcome) = joined {
             completed += 1;
-            apply_outcome(app, &mut summary, outcome, completed, total);
+            apply_outcome(app, &mut summary, outcome, completed, total, Some(&state.manifest));
+            if completed % 5 == 0 {
+                let _ = state.manifest.persist();
+            }
         }
     }
     summary.canceled = canceled;
+
+    // 清单落盘：下次翻到同一个页面可以直接跳过。
+    if let Err(error) = state.manifest.persist() {
+        eprintln!("[digbear] 下载清单写入失败: {error}");
+    }
 
     let _ = app.emit("download-done", &summary);
     Ok(summary)
@@ -232,7 +272,9 @@ async fn run_item_with_retry(context: ItemContext, retries: u8) -> ItemOutcome {
     }
     let mut attempt = 0u8;
     loop {
-        let outcome = run_item(context.clone()).await;
+        // 还有重试机会时保留半成品，让下一次能断点续传。
+        let keep_partial = attempt < retries;
+        let outcome = run_item(context.clone(), keep_partial).await;
         match &outcome {
             ItemOutcome::Success(_) => return outcome,
             ItemOutcome::Failure(failure) => {
@@ -251,7 +293,7 @@ async fn run_item_with_retry(context: ItemContext, retries: u8) -> ItemOutcome {
     }
 }
 
-async fn run_item(context: ItemContext) -> ItemOutcome {
+async fn run_item(context: ItemContext, keep_partial: bool) -> ItemOutcome {
     let ItemContext { app, item, page_url, planner, target, stem, progress } = context;
 
     let parsed_url = match Url::parse(&item.url) {
@@ -298,7 +340,13 @@ async fn run_item(context: ItemContext) -> ItemOutcome {
                     effective_url = info.effective_url;
                 }
             }
-            Err(error) => return failure(&item, error),
+            Err(error) => {
+                // 还有重试机会时留下半成品，下一次用 `curl -C -` 接着下。
+                if keep_partial {
+                    guard.disarm();
+                }
+                return failure(&item, error);
+            }
         }
     }
 
@@ -412,6 +460,7 @@ fn apply_outcome(
     outcome: ItemOutcome,
     completed: usize,
     total: usize,
+    manifest: Option<&crate::core::manifest::DownloadManifest>,
 ) {
     match outcome {
         ItemOutcome::Success(file) => {
@@ -430,6 +479,21 @@ fn apply_outcome(
                 Some(file.id.clone()),
                 Some(file.filename.clone()),
             );
+            if let Some(manifest) = manifest {
+                manifest.record(crate::core::manifest::ManifestEntry {
+                    url: file.url.clone(),
+                    folder: std::path::Path::new(&file.path)
+                        .parent()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_default(),
+                    filename: file.filename.clone(),
+                    size: file.size,
+                    at: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_secs())
+                        .unwrap_or(0),
+                });
+            }
             summary.files.push(file);
         }
         ItemOutcome::Failure(item_failure) => {

@@ -11,7 +11,10 @@ use std::process::Stdio;
 use tauri::AppHandle;
 
 const CONNECT_TIMEOUT_SECS: &str = "20";
-const MAX_TIME_SECS: &str = "900";
+const MAX_TIME_SECS: &str = "1800";
+/// 低于这个速度（字节/秒）持续这么久就判定连接卡死。
+const SPEED_LIMIT_BYTES: &str = "1024";
+const SPEED_LIMIT_SECS: &str = "30";
 
 pub struct FetchInfo {
     pub content_type: String,
@@ -46,24 +49,61 @@ pub async fn fetch_direct(
     let curl = curl_binary().ok_or_else(|| "系统中未找到 curl，无法下载媒体文件。".to_string())?;
     let cookie = cookie_header_for(app, url);
 
+    // 已经有半成品时接着下 —— 大文件在慢速网络下不至于每次重试都从头再来。
+    let can_resume = std::fs::metadata(target).map(|m| m.len() > 0).unwrap_or(false);
+
+    let output = run_curl(&curl, url, page_url, target, &cookie, can_resume).await?;
+    if output.status.success() {
+        return Ok(parse_info(&output.stdout));
+    }
+
+    // 33 = 服务器不支持 Range：删掉半成品，从头再下一次。
+    if output.status.code() == Some(33) {
+        let _ = std::fs::remove_file(target);
+        let retry = run_curl(&curl, url, page_url, target, &cookie, false).await?;
+        if retry.status.success() {
+            return Ok(parse_info(&retry.stdout));
+        }
+        return Err(describe_failure(&retry.stderr, retry.status.code()));
+    }
+
+    Err(describe_failure(&output.stderr, output.status.code()))
+}
+
+/// 拼出 curl 命令并执行。`resume` 为真时带上 `-C -`，接着已有的半成品下。
+async fn run_curl(
+    curl: &Path,
+    url: &str,
+    page_url: &str,
+    target: &Path,
+    cookie: &str,
+    resume: bool,
+) -> Result<std::process::Output, String> {
     let mut command = tokio::process::Command::new(curl);
     command
         .arg("-sS")
         .arg("-L")
         .arg("--fail")
-        .arg("--retry")
-        .arg("3")
-        .arg("--retry-all-errors")
         .arg("--connect-timeout")
         .arg(CONNECT_TIMEOUT_SECS)
         .arg("--max-time")
         .arg(MAX_TIME_SECS)
+        // 连接卡死（长时间零速）时快速失败。
+        // 不用 curl 自带的 --retry：那会和外层的重试层叠加，
+        // 一个文件最坏要等 3×900 秒才放弃。
+        .arg("--speed-limit")
+        .arg(SPEED_LIMIT_BYTES)
+        .arg("--speed-time")
+        .arg(SPEED_LIMIT_SECS)
         .arg("-A")
         .arg(crate::core::webview::BROWSER_USER_AGENT)
         .arg("-H")
         .arg(format!("Referer: {page_url}"))
         .arg("-H")
         .arg("Accept: */*");
+    if resume {
+        command.arg("-C").arg("-");
+    }
     if let Some(proxy) = crate::core::net::system_proxy() {
         command.arg("-x").arg(proxy);
     }
@@ -81,20 +121,19 @@ pub async fn fetch_direct(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let output = command
+    command
         .output()
         .await
-        .map_err(|error| format!("无法启动 curl 下载: {error}"))?;
+        .map_err(|error| format!("无法启动 curl 下载: {error}"))
+}
 
-    if !output.status.success() {
-        return Err(describe_failure(&output.stderr, output.status.code()));
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut lines = stdout.lines();
+/// 解析 curl `-w` 打印的两行：Content-Type 与最终地址。
+fn parse_info(stdout: &[u8]) -> FetchInfo {
+    let text = String::from_utf8_lossy(stdout);
+    let mut lines = text.lines();
     let content_type = lines.next().unwrap_or("").trim().to_string();
     let effective_url = lines.next().unwrap_or("").trim().to_string();
-    Ok(FetchInfo { content_type, effective_url })
+    FetchInfo { content_type, effective_url }
 }
 
 fn describe_failure(stderr: &[u8], exit_code: Option<i32>) -> String {
