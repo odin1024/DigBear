@@ -113,23 +113,26 @@ const STEPS = [
 const asset = (path: string) =>
   `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
+// 截图更新后改这个值，浏览器才不会继续用旧缓存
+const SHOT_VERSION = "20261101b";
+
 const SHOTS = [
   {
     id: "home",
     label: ["首页", "Home"],
-    src: asset("/assets/shots/home.webp"),
+    src: `${asset("/assets/shots/home.webp")}?v=${SHOT_VERSION}`,
     caption: ["一个输入框，一屏就够", "One input, one screen"],
   },
   {
     id: "results",
     label: ["结果", "Results"],
-    src: asset("/assets/shots/results.webp"),
+    src: `${asset("/assets/shots/results.webp")}?v=${SHOT_VERSION}`,
     caption: ["按类型筛选、排序、预览，勾选后一次性收进采集袋", "Filter by kind, sort, preview, then save the picks in one go"],
   },
   {
     id: "settings",
     label: ["设置", "Settings"],
-    src: asset("/assets/shots/settings.webp"),
+    src: `${asset("/assets/shots/settings.webp")}?v=${SHOT_VERSION}`,
     caption: ["保存位置、扩展、并发、主题与登录站点", "Folder, extensions, concurrency, theme and login sites"],
   },
 ];
