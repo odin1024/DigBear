@@ -28,6 +28,8 @@ fn source_from(raw: &str) -> ResourceSource {
         "anchor" => ResourceSource::Anchor,
         "performance" => ResourceSource::Performance,
         "inline_style" => ResourceSource::InlineStyle,
+        "iframe" => ResourceSource::Iframe,
+        "shadow" => ResourceSource::Shadow,
         "fallback" => ResourceSource::Fallback,
         _ => ResourceSource::Other,
     }

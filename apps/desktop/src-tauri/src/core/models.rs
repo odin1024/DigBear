@@ -29,6 +29,10 @@ pub enum ResourceSource {
     Anchor,
     Performance,
     InlineStyle,
+    /// 同源 iframe 内部抓到的资源。
+    Iframe,
+    /// Shadow DOM 内部抓到的资源。
+    Shadow,
     Fallback,
     Other,
 }

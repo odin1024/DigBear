@@ -189,6 +189,101 @@
     return out;
   }
 
+
+  // --- 通用子树扫描 ------------------------------------------------------
+  // 同源 iframe、Shadow DOM 里的媒体用这一段统一处理。
+  function scanMediaIn(root, rootBase, sourceLabel) {
+    if (!root || !root.querySelectorAll) return;
+
+    var imgs = root.querySelectorAll('img');
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i];
+      var info = { alt: str(img.getAttribute('alt')) || null };
+      var nw = img.naturalWidth, nh = img.naturalHeight;
+      if (nw > 0) info.width = nw;
+      if (nh > 0) info.height = nh;
+      var current = '';
+      try { current = img.currentSrc || ''; } catch (e) {}
+      add(abs(current, rootBase), 'image', sourceLabel, info);
+      add(abs(img.getAttribute('src'), rootBase), 'image', sourceLabel, info);
+      addSrcset(img.getAttribute('srcset'), sourceLabel, info);
+    }
+
+    var pictures = root.querySelectorAll('picture');
+    for (var p = 0; p < pictures.length; p++) {
+      var sources = pictures[p].querySelectorAll('source');
+      for (var q = 0; q < sources.length; q++) {
+        addSrcset(sources[q].getAttribute('srcset'), sourceLabel, { kind: 'image' });
+        add(abs(sources[q].getAttribute('src'), rootBase), 'image', sourceLabel, null);
+      }
+    }
+
+    var media = root.querySelectorAll('video, audio');
+    for (var m = 0; m < media.length; m++) {
+      var el = media[m];
+      var tag = (el.tagName || '').toLowerCase();
+      var kind = tag === 'video' ? 'video' : 'audio';
+      var info = {};
+      var mw = pickNumber(el.videoWidth), mh = pickNumber(el.videoHeight);
+      if (mw) info.width = mw;
+      if (mh) info.height = mh;
+      var mdur = Number(el.duration);
+      if (isFinite(mdur) && mdur > 0) info.duration = Math.round(mdur * 1000) / 1000;
+      var poster = abs(el.getAttribute('poster'), rootBase);
+      if (poster && tag === 'video') { info.poster = poster; add(poster, 'image', sourceLabel, null); }
+      var mcur = '';
+      try { mcur = el.currentSrc || ''; } catch (e) {}
+      add(abs(mcur, rootBase), kind, sourceLabel, info);
+      add(abs(el.getAttribute('src'), rootBase), kind, sourceLabel, info);
+      var inner = el.querySelectorAll('source');
+      for (var s = 0; s < inner.length; s++) {
+        add(abs(inner[s].getAttribute('src'), rootBase), kind, sourceLabel, info);
+        addSrcset(inner[s].getAttribute('srcset'), sourceLabel, { kind: kind });
+      }
+      var tracks = el.querySelectorAll('track');
+      for (var tr = 0; tr < tracks.length; tr++) {
+        add(abs(tracks[tr].getAttribute('src'), rootBase), 'other', sourceLabel, null);
+      }
+    }
+
+    var anchors = root.querySelectorAll('a[href]');
+    for (var a = 0; a < anchors.length; a++) {
+      var au = abs(anchors[a].getAttribute('href'), rootBase);
+      if (!au) continue;
+      var akind = kindOfExt(au);
+      if (!akind) continue;
+      var atext = '';
+      try { atext = (anchors[a].textContent || '').replace(/\s+/g, ' ').trim().slice(0, 200); } catch (e) {}
+      add(au, akind, sourceLabel, { alt: atext || null });
+    }
+
+    var styled = root.querySelectorAll('[style]');
+    for (var st = 0; st < styled.length; st++) {
+      var styleText = styled[st].getAttribute('style') || '';
+      if (styleText.indexOf('url(') === -1) continue;
+      addCssUrls(styleText, rootBase, sourceLabel, null);
+    }
+
+    var styleTags = root.querySelectorAll('style');
+    for (var sg = 0; sg < styleTags.length; sg++) {
+      var text = styleTags[sg].textContent || '';
+      if (!text || text.indexOf('url(') === -1) continue;
+      addCssUrls(text, rootBase, sourceLabel, null);
+    }
+
+    var links = root.querySelectorAll('link[href]');
+    for (var l = 0; l < links.length; l++) {
+      var rel = str(links[l].getAttribute('rel')).toLowerCase();
+      if (!rel) continue;
+      var href = abs(links[l].getAttribute('href'), rootBase);
+      if (!href) continue;
+      var rels = rel.split(/\s+/);
+      if (rels.indexOf('icon') !== -1 || rels.indexOf('apple-touch-icon') !== -1) {
+        add(href, 'image', sourceLabel, null);
+      }
+    }
+  }
+
   // --- 1. img -------------------------------------------------------------
   section('img', function () {
     var imgs = document.querySelectorAll('img');
@@ -511,6 +606,62 @@
       var el = images[i];
       var raw = el.getAttribute('href') || el.getAttribute('xlink:href') || '';
       add(abs(raw), 'image', 'other', null);
+    }
+  });
+
+
+  // --- 9. Shadow DOM（开放模式）------------------------------------------
+  section('shadow_dom', function () {
+    var all = document.querySelectorAll('*');
+    var scanned = 0;
+    for (var i = 0; i < all.length && scanned < 400; i++) {
+      var host = all[i];
+      var shadow = null;
+      try { shadow = host.shadowRoot; } catch (e) { shadow = null; }
+      if (!shadow) continue;
+      scanned++;
+      scanMediaIn(shadow, base, 'shadow');
+    }
+  });
+
+  // --- 10. 同源 iframe ----------------------------------------------------
+  // 跨域 iframe 读不到内容，只记一条 warning；
+  // 同源 iframe 里的图片、视频直接收进来 —— 上游版本抓不到这一层。
+  section('iframes', function () {
+    var frames = document.querySelectorAll('iframe, frame');
+    var opened = 0;
+    for (var i = 0; i < frames.length; i++) {
+      var frame = frames[i];
+      var src = str(frame.getAttribute('src'));
+      var frameBase = abs(src) || base;
+      var doc = null;
+      try { doc = frame.contentDocument; } catch (e) { doc = null; }
+      if (!doc) {
+        if (src) warn('iframe 无法读取（跨域或尚未加载）: ' + src.slice(0, 160));
+        continue;
+      }
+      opened++;
+      var root = doc.body || doc.documentElement;
+      if (root) scanMediaIn(root, frameBase, 'iframe');
+    }
+    if (opened === 0 && frames.length) {
+      warn('页面里有 ' + frames.length + ' 个 iframe，但一个都读不到（多为跨域）');
+    }
+  });
+
+  // --- 11. track / object / embed ---------------------------------------
+  section('tracks_and_embeds', function () {
+    var tracks = document.querySelectorAll('track[src]');
+    for (var i = 0; i < tracks.length; i++) {
+      add(abs(tracks[i].getAttribute('src')), 'other', 'other', null);
+    }
+    var embeds = document.querySelectorAll('object[data], embed[src]');
+    for (var j = 0; j < embeds.length; j++) {
+      var raw = embeds[j].getAttribute('data') || embeds[j].getAttribute('src');
+      var u = abs(raw);
+      if (!u) continue;
+      var kind = kindOfExt(u);
+      if (kind) add(u, kind, 'other', null);
     }
   });
 

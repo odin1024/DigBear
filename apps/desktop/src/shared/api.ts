@@ -17,6 +17,8 @@ export type ResourceSource =
   | "anchor"
   | "performance"
   | "inline_style"
+  | "iframe"
+  | "shadow"
   | "fallback"
   | "other";
 
