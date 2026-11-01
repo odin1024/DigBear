@@ -16,7 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, windows-2022]
+        # 目前只发布 Windows。macOS runner 排队慢且会因超时把整个 workflow
+        # 拖成 cancelled（Windows 那边其实全绿），所以先只留 Windows。
+        os: [windows-2022]
     steps:
       - uses: actions/checkout@v4
 
