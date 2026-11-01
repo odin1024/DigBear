@@ -2,8 +2,12 @@
 
 | 文件 | 来源 | 说明 |
 | --- | --- | --- |
-| `bear-<mood>.webp` / `.png` | **本项目自产** —— 即梦 Seedream 4.6 生成 | 吉祥物插画，透明背景，1024px。`mood` ∈ `hero / crawl / empty / happy / error / login` |
-| `bear-logo.webp` / `.png` | **本项目自产** —— Pillow 矢量绘制 | 顶栏品牌图标（紫底矿工帽熊） |
+| `bear-<mood>.webp` | **本项目自产** —— 即梦 Seedream 4.6 生成 | 吉祥物插画，透明背景。`mood` ∈ `hero / crawl / empty / happy / error / login` |
+| `bear-logo.webp` | **本项目自产** —— Pillow 矢量绘制 | 顶栏品牌图标（紫底矿工帽熊） |
+| `author-qr.png` | 作者公众号二维码 | 「关于」页的反馈入口 |
+
+> 这里只放**实际会被打包进应用**的 WebP。生成脚本产出的 PNG 原图留在
+> `design-assets/`（不进仓库），避免安装包白白多出几 MB。
 | `paper-pattern.webp` | 继承自上游 | 页面底纹 |
 
 ## 重新生成

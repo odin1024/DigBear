@@ -1,0 +1,66 @@
+name: Deploy website to GitHub Pages
+
+# 官网是纯静态站点（Vite 构建产物），直接托管在 GitHub Pages 上，免费、免服务器。
+# 部署地址：https://odin1024.github.io/DigBear/
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/website/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.14.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build website
+        env:
+          # 项目站点部署在 /DigBear/ 子路径下，资源必须带上这个前缀
+          VITE_BASE: /DigBear/
+        run: pnpm --filter @dig-bear/website build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/website/dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

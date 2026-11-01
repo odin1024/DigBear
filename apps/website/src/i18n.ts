@@ -1,6 +1,6 @@
 export type Locale = "zh" | "en";
 
-const STORAGE_KEY = "crawl-bear-locale";
+const STORAGE_KEY = "digbear-locale";
 let currentLocale: Locale = "zh";
 
 export function detectLocale(): Locale {
