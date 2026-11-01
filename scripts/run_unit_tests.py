@@ -146,6 +146,9 @@ def apply_toolchain_env(env):
     if os.path.isdir(cargo_home):
         env["CARGO_HOME"] = cargo_home
 
+    # 只在本地确实装了 GNU 工具链时才切过去。
+    # GitHub Actions 的 Windows runner 用自带的 MSVC，RUSTUP_HOME 里没有这个
+    # 目录 —— 硬切过去反而会报 "linker link.exe not found"。
     toolchain = env.get("RUSTUP_TOOLCHAIN") or os.environ.get("RUSTUP_TOOLCHAIN")
     if not toolchain:
         gnu = os.path.join(rustlib_root, "toolchains", "stable-x86_64-pc-windows-gnu")

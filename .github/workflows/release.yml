@@ -51,6 +51,12 @@ jobs:
             ForEach-Object { Copy-Item $_.FullName -Destination $out }
           Get-ChildItem $out | Select-Object Name, Length
 
+      - name: Package browser extension
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          Compress-Archive -Path "apps/extension/*" -DestinationPath "dist/DigBear_extension_v$version.zip" -Force
+
       - name: Checksums
         shell: pwsh
         run: |
@@ -74,7 +80,12 @@ jobs:
           $tag = $env:GITHUB_REF_NAME
           $files = Get-ChildItem dist -File | Where-Object { $_.Name -ne "SHA256SUMS" } | ForEach-Object { $_.FullName }
           if (-not (gh release view $tag)) {
-            gh release create $tag --title "DigBear $tag" --notes "Windows 安装包（NSIS / MSI）。应用未做代码签名，首次运行请在 Windows 安全中心选择“更多信息 → 仍要运行”。"
+            $notesFile = "docs/releases/$tag.md"
+            if (Test-Path $notesFile) {
+              gh release create $tag --title "掘掘熊 DigBear $tag" --notes-file $notesFile
+            } else {
+              gh release create $tag --title "DigBear $tag" --notes "Windows 安装包（NSIS / MSI）。应用未做代码签名，首次运行请在 Windows 安全中心选择“更多信息 → 仍要运行”。"
+            }
           }
           gh release upload $tag @files dist/SHA256SUMS --clobber
 
@@ -82,6 +93,8 @@ jobs:
     name: Build macOS package
     runs-on: macos-14
     timeout-minutes: 60
+    # 目前只面向 Windows 发布：macOS 产物是顺带的，别让它拖垮整个流水线。
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
