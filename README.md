@@ -51,7 +51,7 @@ build-preview\dig-bear.exe
 双击即可运行，窗口标题是「掘掘熊 · DigBear」。
 （旁边的三个 DLL 不能删、不能移动。）
 
-> 这个预览版是 GNU 工具链编的 release 构建，体积 16 MB，仅用于先体验功能；
+> 这个预览版是 GNU 工具链编的 release 构建（约 40 MB），仅用于先体验功能；
 > 正式安装包需要 MSVC Build Tools，额外产出 NSIS / MSI 安装程序。
 > 详细说明见 [`docs/PREVIEW.md`](./docs/PREVIEW.md)。
 
