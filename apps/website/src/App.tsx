@@ -254,7 +254,6 @@ export default function App() {
             <span className="hero__blob" aria-hidden="true" />
             <SmartImage
               className="hero__bear"
-              primary={asset("/assets/generated/hero.png")}
               fallback={asset("/assets/brand/bear-hero.webp")}
               alt={t("小熊爬爬抱着采集袋挥手", "The bear waving with a collection bag")}
             />
@@ -310,7 +309,6 @@ export default function App() {
             transition={{ duration: 0.4 }}
           >
             <SmartImage
-              primary={asset("/assets/generated/preview.png")}
               fallback={asset("/assets/brand/bear-happy.webp")}
               alt={t("小熊抱着装满媒体文件的采集袋", "The bear holding a bag full of media files")}
             />
@@ -354,7 +352,6 @@ export default function App() {
             transition={{ duration: 0.4 }}
           >
             <SmartImage
-              primary={asset("/assets/generated/resolver.png")}
               fallback={asset("/assets/brand/bear-crawl.webp")}
               alt={t("小熊拿着放大镜和工具，正在调校一枚媒体解析齿轮", "The bear tuning a media parsing gear with a magnifying glass")}
             />
@@ -547,7 +544,6 @@ export default function App() {
             </div>
             <div className="install__art">
               <SmartImage
-                primary={asset("/assets/generated/install.png")}
                 fallback={asset("/assets/brand/bear-login.webp")}
                 alt={t("小熊抱着安装包裹，旁边是盾牌和门", "The bear holding a key beside a door")}
               />
