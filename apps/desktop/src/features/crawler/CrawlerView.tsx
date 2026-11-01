@@ -56,6 +56,15 @@ const SORT_OPTIONS: Array<{ value: SortBy; label: string }> = [
   { value: "name", label: "文件名" },
 ];
 
+/** 只看大图：按最小宽度过滤，尺寸未知的资源一律保留。 */
+const SIZE_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 0, label: "全部尺寸" },
+  { value: 320, label: "≥320px" },
+  { value: 640, label: "≥640px" },
+  { value: 1280, label: "≥1280px" },
+  { value: 1920, label: "≥1920px" },
+];
+
 /** CSV 单元格转义：含逗号、引号或换行时加引号。 */
 function csvCell(value: string | number | null): string {
   const text = value === null || value === undefined ? "" : String(value);
@@ -140,6 +149,8 @@ export function CrawlerView({
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [summary, setSummary] = useState<DownloadSummary | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>("default");
+  /** 图片最小宽度；0 表示不过滤。 */
+  const [minWidth, setMinWidth] = useState(0);
   /** 批量翻找队列里的网址。 */
   const [queue, setQueue] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -360,9 +371,15 @@ export function CrawlerView({
   );
 
   const visibleResources = useMemo(() => {
-    const list = (result?.resources ?? []).filter((resource) =>
-      activeKinds.has(resource.kind)
-    );
+    const list = (result?.resources ?? []).filter((resource) => {
+      if (!activeKinds.has(resource.kind)) return false;
+      if (minWidth <= 0) return true;
+      // 只对图片生效；尺寸未知的（视频、字体等）照常保留。
+      if (resource.kind !== "image") return true;
+      const width = resource.width ?? 0;
+      if (width <= 0) return true;
+      return width >= minWidth;
+    });
     if (sortBy === "default") return list;
     const sorted = [...list];
     if (sortBy === "resolution") {
@@ -1063,6 +1080,17 @@ export function CrawlerView({
                     <>
                       <div className="result-toolbar">
                         <KindFilter counts={counts} active={activeKinds} onChange={setActiveKinds} />
+                        <Select
+                          className="result-toolbar__sort"
+                          size="small"
+                          value={minWidth}
+                          onChange={(value) => setMinWidth(Number(value))}
+                          options={SIZE_OPTIONS.map((option) => ({
+                            value: option.value,
+                            label: t(option.label, option.label),
+                          }))}
+                          aria-label={t("只看大图", "Filter by size")}
+                        />
                         <Select
                           className="result-toolbar__sort"
                           size="small"

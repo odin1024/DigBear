@@ -79,6 +79,20 @@ impl Drop for PartGuard {
     }
 }
 
+/// 按媒体类型分目录时使用的子目录名。
+///
+/// 用 ASCII 命名，避免不同系统之间拷贝时出现编码问题。
+pub fn kind_folder(kind: crate::core::models::MediaKind) -> &'static str {
+    use crate::core::models::MediaKind;
+    match kind {
+        MediaKind::Image => "images",
+        MediaKind::Video => "videos",
+        MediaKind::Audio => "audio",
+        MediaKind::Font => "fonts",
+        MediaKind::Other => "other",
+    }
+}
+
 pub fn mime_of(content_type: &str) -> String {
     content_type
         .split(';')

@@ -104,6 +104,9 @@ pub struct AppSettings {
     /// 文件名模板，支持 {name} {site} {kind} {index} {date}。
     #[serde(default = "default_filename_template")]
     pub filename_template: String,
+    /// 下载时按媒体类型分目录保存（图片 / 视频 / 音乐 / 字体各一个子目录）。
+    #[serde(default)]
+    pub organize_by_kind: bool,
 }
 
 fn default_language() -> String {
@@ -157,6 +160,7 @@ impl AppSettings {
             retry_count: default_retry_count(),
             theme: default_theme(),
             filename_template: default_filename_template(),
+            organize_by_kind: false,
         }
     }
 

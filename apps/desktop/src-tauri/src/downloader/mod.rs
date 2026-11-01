@@ -48,7 +48,28 @@ pub async fn download_batch(
     let filename_template = settings.filename_template.clone();
     let site = crate::core::url::host_label(&page_url);
     let date = paths::today_stamp();
-    let planner = Arc::new(PathPlanner::new(folder.clone()));
+    // 按类型分目录时，每种媒体各有一个子目录与独立的路径规划器。
+    let planners: Vec<(crate::core::models::MediaKind, Arc<PathPlanner>)> =
+        if settings.organize_by_kind {
+            use crate::core::models::MediaKind;
+            [MediaKind::Image, MediaKind::Video, MediaKind::Audio, MediaKind::Font]
+                .into_iter()
+                .map(|kind| {
+                    let sub = folder.join(paths::kind_folder(kind));
+                    (kind, Arc::new(PathPlanner::new(sub)))
+                })
+                .collect()
+        } else {
+            vec![(crate::core::models::MediaKind::Other, Arc::new(PathPlanner::new(folder.clone())))]
+        };
+    let planner_for = |kind: crate::core::models::MediaKind| -> Arc<PathPlanner> {
+        planners
+            .iter()
+            .find(|(k, _)| *k == kind)
+            .or_else(|| planners.last())
+            .map(|(_, planner)| Arc::clone(planner))
+            .unwrap_or_else(|| Arc::new(PathPlanner::new(folder.clone())))
+    };
     let page_url_label = page_url.to_string();
 
     let mut summary = DownloadSummary {
@@ -118,6 +139,7 @@ pub async fn download_batch(
                 &date,
             );
             let ext = paths::planned_extension(item_url.as_ref(), item.kind);
+            let planner = planner_for(item.kind);
             let target = planner.reserve(&stem, &ext);
             let planned_name = target
                 .file_name()

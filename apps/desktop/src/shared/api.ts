@@ -70,6 +70,8 @@ export interface AppSettings {
   theme: string;
   /** 文件名模板，支持 {name} {site} {kind} {index} {date}。 */
   filename_template: string;
+  /** 下载时按媒体类型分目录保存。 */
+  organize_by_kind: boolean;
 }
 
 export interface DiskSpace {

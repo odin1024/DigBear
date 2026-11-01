@@ -339,6 +339,17 @@ export function SettingsView({
 
             <div className="setting-block setting-block--row">
               <div className="setting-block__label">
+                <span>{t("按类型分目录", "Group by media kind")}</span>
+              </div>
+              <Switch
+                checked={draft.organize_by_kind}
+                onChange={(checked) => update({ organize_by_kind: checked })}
+                aria-label={t("下载时按类型分目录", "Save into folders per media kind")}
+              />
+            </div>
+
+            <div className="setting-block setting-block--row">
+              <div className="setting-block__label">
                 <span>{t("失败重试", "Retry failed downloads")}</span>
               </div>
               <div className="number-field">
