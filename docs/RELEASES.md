@@ -26,7 +26,7 @@
 
 ### 版本号写在哪
 
-版本号出现在 5 个地方，**发布时必须同步**（`scripts/check_version.py` 会校验）：
+版本号出现在 8 个地方，**发布时必须同步**（`scripts/check_version.py` 会校验）：
 
 ```
 package.json                        "version"
@@ -34,6 +34,9 @@ apps/desktop/package.json           "version"
 apps/website/package.json           "version"
 apps/desktop/src-tauri/Cargo.toml   version = "..."
 apps/desktop/src-tauri/tauri.conf.json  "version"
+apps/desktop/src/shared/version.ts       APP_VERSION
+apps/website/src/version.ts              VERSION
+apps/extension/manifest.json             "version"
 ```
 
 `Cargo.lock` 由 `cargo` 自动更新，不要手改。
@@ -64,8 +67,8 @@ feature/* ──► PR ──► main ──► 打 tag ──► CI 构建 ─�
    ```
    标签必须是 `v` 前缀 + 纯版本号，不带任何后缀
 5. **CI 自动构建**：`.github/workflows/release.yml` 监听 `v*` 标签，产出
-   - Windows：NSIS 安装包 + MSI（`x64`）
-   - macOS：`.pkg` + `.zip`（universal）
+   - Windows：NSIS 安装包 + MSI（`x64`）+ 浏览器扩展 zip
+   - 目前**只发布 Windows**：macOS 分支虽在代码里保留，但没有实机验证，不上架
 6. **发布**：CI 自动创建 GitHub Release 并上传产物与 `SHA256SUMS`
 7. **人工复核**：下载产物实机安装一遍，确认能启动、能卸载
 
@@ -83,8 +86,7 @@ feature/* ──► PR ──► main ──► 打 tag ──► CI 构建 ─�
 | --- | --- | --- | --- |
 | Windows | NSIS | `DigBear_<version>_x64-setup.exe` | 推荐给个人用户 |
 | Windows | MSI | `DigBear_<version>_x64_<locale>.msi` | 企业批量部署 |
-| macOS | pkg | `DigBear-macOS.pkg` | 拖到 `/Applications` |
-| macOS | zip | `DigBear-macOS.zip` | 便携分发 |
+| 通用 | zip | `DigBear_extension_v<version>.zip` | 浏览器扩展，可选安装 |
 
 每个平台都必须附带 `SHA256SUMS`（CI 自动生成）。
 
@@ -92,7 +94,6 @@ feature/* ──► PR ──► main ──► 打 tag ──► CI 构建 ─�
 
 | 平台 | 现状 | 发布要求 |
 | --- | --- | --- |
-| macOS | 未公证、未签名 | 分发前需 Apple 公证，否则用户首次打开被拦 |
 | Windows | 未签名 | 建议购买 OV 证书（约 $70/年）并用 `signtool` 签名 NSIS 与 MSI |
 
 未签名时，必须在 Release 说明里明确写出：
@@ -102,7 +103,7 @@ feature/* ──► PR ──► main ──► 打 tag ──► CI 构建 ─�
 ## 五、发布检查清单
 
 - [ ] CHANGELOG 的「未发布」段落已整理为正式段落，日期已填
-- [ ] 5 处版本号一致（`scripts/check_version.py` 通过）
+- [ ] 8 处版本号一致（`scripts/check_version.py` 通过）
 - [ ] `pnpm test:rust` 与 `pnpm build` 通过
 - [ ] 实机安装并启动一次，确认界面正常、核心流程可用
 - [ ] 产物齐全（对应平台的全部格式）+ `SHA256SUMS`

@@ -59,16 +59,31 @@ if ($SyncOnly) {
     exit 0
 }
 
-$env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-gnu"
-$env:RUSTFLAGS = "-C linker=rust-lld -C link-self-contained=yes"
-# MinGW 的 bin 目录必须排在 self-contained 前面：
-# 否则 rustc 挑到的 dlltool 找不到配套的运行时 DLL，会报 CreateProcess 失败。
-$gnuBin = "D:\tmp-toolchain\mingw64\bin"
-$selfContained = "D:\.rustup\toolchains\stable-x86_64-pc-windows-gnu\lib\rustlib\x86_64-pc-windows-gnu\bin\self-contained"
-$extraPath = @()
-if (Test-Path $gnuBin) { $extraPath += $gnuBin }
-if (Test-Path $selfContained) { $extraPath += $selfContained }
-if ($extraPath.Count -gt 0) { $env:PATH = ($extraPath -join ";") + ";" + $env:PATH }
+# 工具链选择：
+#   - 机器上装了 GNU 工具链（stable-x86_64-pc-windows-gnu）就走 GNU，本项目的
+#     开发环境就是这么配的；
+#   - 否则走系统默认的 MSVC（装了 Microsoft C++ Build Tools 就能编）——
+#     别人 clone 下来直接跑也不会卡在找不到工具链上。
+$gnuToolchain = "$env:RUSTUP_HOME\toolchains\stable-x86_64-pc-windows-gnu"
+if (-not $env:RUSTUP_HOME) { $gnuToolchain = "$env:USERPROFILE\.rustup\toolchains\stable-x86_64-pc-windows-gnu" }
+
+if (Test-Path $gnuToolchain) {
+    Write-Step "使用 GNU 工具链"
+    $env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-gnu"
+    $env:RUSTFLAGS = "-C linker=rust-lld -C link-self-contained=yes"
+    # MinGW 的 bin 必须排在 self-contained 前面：否则 rustc 挑到的 dlltool
+    # 找不到配套的运行时 DLL，会报 CreateProcess 失败。
+    $gnuBin = "D:\tmp-toolchain\mingw64\bin"
+    $selfContained = Join-Path $gnuToolchain "lib\rustlib\x86_64-pc-windows-gnu\bin\self-contained"
+    $extraPath = @()
+    if (Test-Path $gnuBin) { $extraPath += $gnuBin }
+    if (Test-Path $selfContained) { $extraPath += $selfContained }
+    if ($extraPath.Count -gt 0) { $env:PATH = ($extraPath -join ";") + ";" + $env:PATH }
+} else {
+    Write-Step "未找到 GNU 工具链，使用系统默认工具链（MSVC）"
+    $env:RUSTFLAGS = ""
+    Remove-Item Env:\RUSTUP_TOOLCHAIN -ErrorAction SilentlyContinue
+}
 
 $cli = Join-Path $Desktop "node_modules\@tauri-apps\cli\tauri.js"
 if (-not (Test-Path $cli)) {

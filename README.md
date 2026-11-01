@@ -9,6 +9,12 @@
   <img alt="本地运行" src="https://img.shields.io/badge/%E6%9C%AC%E5%9C%B0%E8%BF%90%E8%A1%8C-%E4%B8%8D%E4%B8%8A%E4%BC%A0-F0A830?style=flat-square&labelColor=FFF7E8" />
 </p>
 
+<p align="center">
+  <a href="https://odin1024.github.io/DigBear/"><b>🌐 官网</b></a> ·
+  <a href="https://github.com/odin1024/DigBear/releases/latest"><b>⬇️ 下载</b></a> ·
+  <a href="https://github.com/odin1024/DigBear/issues"><b>💬 反馈</b></a>
+</p>
+
 ## 它是什么
 
 **掘掘熊（DigBear）是一个 Windows 小工具：粘贴一个网址，它帮你把那个页面里的图片、视频、音乐和字体全都找出来，你挑完再一起存到本地。**
