@@ -24,10 +24,15 @@
 - **结论**：**运行时**对中文路径完全无碍。唯一受影响的是 GNU `windres`（仅影响用 GNU 工具链打包，
   MSVC 工具链无此问题）
 
-### A3 ⬜ 实机验证：X / YouTube 高清流
-- 上游走 innertube `VISIONOS` client 取直链（纯 HTTP，不经过 WebView），理论上跨平台
-- **风险**：接口参数变更、被限流、需要 `referer`/UA 匹配
-- **验证**：`DIGBEAR_TEST_PAGE_VIDEO=<youtube 链接>` + `DIGBEAR_TEST_DOWNLOAD=1`
+### A3 ◐ 实机验证：X / YouTube 高清流（部分完成，2026-11-01）
+
+- **X**：`x.com/NASA` 实测抓取 18 秒、25 张图 + 3 字体，走完整 WebView 路径。
+  未登录状态看不到视频流，需要在设置里登录后再验「master playlist 优先」
+- **YouTube**：观看页已能识别并给出视频资源（`video: 1`），
+  但当前出口 IP 被 YouTube 判定为机器人（`Sign in to confirm you're not a bot`），
+  innertube 直链取不到。已加多客户端轮换 + 登录 Cookie 复用，
+  **待登录 YouTube 后复测**
+- 待办：登录后确认最高清 H.264 + AAC 音轨能被 FFmpeg 合并成单个文件
 
 ### A4 ⬜ 实机验证：需要登录的站点
 - WebView2 的 Cookie 按**用户数据目录**隔离；登录窗口与抓取窗口共用同一目录，理论上能共享

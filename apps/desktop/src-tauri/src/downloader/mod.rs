@@ -10,7 +10,7 @@ mod curl;
 pub(crate) mod hls;
 mod paths;
 pub(crate) mod resolvers;
-mod youtube;
+pub mod youtube;
 
 use crate::core::error::AppError;
 use crate::core::models::{
@@ -422,7 +422,7 @@ async fn run_page_video(
     stem: &str,
     progress: &ProgressSink,
 ) -> ItemOutcome {
-    let Some(resolved) = resolvers::resolve(&item.url).await else {
+    let Some(resolved) = resolvers::resolve(app, &item.url).await else {
         return failure(item, "这个视频是网页播放页，暂时还没有可用的解析方案。");
     };
     let (resolver_id, media) = match resolved {

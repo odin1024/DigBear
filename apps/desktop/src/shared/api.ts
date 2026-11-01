@@ -20,6 +20,7 @@ export type ResourceSource =
   | "iframe"
   | "shadow"
   | "fallback"
+  | "resolver"
   | "other";
 
 export interface MediaResource {

@@ -57,7 +57,7 @@ build-preview\dig-bear.exe
 
 ## 下载
 
-安装包见 [Releases](https://github.com/your-org/dig-bear/releases)：
+安装包见 [Releases](https://github.com/odin1024/DigBear/releases)：
 
 | 格式 | 说明 |
 | --- | --- |

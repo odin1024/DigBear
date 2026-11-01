@@ -82,13 +82,40 @@ pub fn maybe_spawn(handle: AppHandle) {
             for resource in result.resources.iter().filter(|r| matches!(r.kind, crate::core::models::MediaKind::Video)).take(5) {
                 eprintln!("[digbear][test] video url={}", resource.url);
             }
+            let autoexit = std::env::var("DIGBEAR_TEST_AUTOEXIT").ok().as_deref() == Some("1");
             if std::env::var("DIGBEAR_TEST_DOWNLOAD")
             .or_else(|_| std::env::var("CRAWLBear_TEST_DOWNLOAD")).ok().as_deref() != Some("1") {
+                if autoexit {
+                    handle.exit(0);
+                }
                 return;
             }
+            // 只下指定类型：DIGBEAR_TEST_KINDS=video,image
+            let kinds_filter: Vec<String> = std::env::var("DIGBEAR_TEST_KINDS")
+                .ok()
+                .map(|value| {
+                    value
+                        .split(',')
+                        .map(|item| item.trim().to_ascii_lowercase())
+                        .filter(|item| !item.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default();
             let items = result
                 .resources
                 .iter()
+                .filter(|resource| {
+                    kinds_filter.is_empty()
+                        || kinds_filter.iter().any(|kind| {
+                            kind == match resource.kind {
+                                crate::core::models::MediaKind::Image => "image",
+                                crate::core::models::MediaKind::Video => "video",
+                                crate::core::models::MediaKind::Audio => "audio",
+                                crate::core::models::MediaKind::Font => "font",
+                                crate::core::models::MediaKind::Other => "other",
+                            }
+                        })
+                })
                 .map(|resource| DownloadItem {
                     id: resource.id.clone(),
                     url: resource.url.clone(),
@@ -110,6 +137,9 @@ pub fn maybe_spawn(handle: AppHandle) {
                     "[digbear][test] download error: {} {}",
                     error.code, error.message
                 ),
+            }
+            if autoexit {
+                handle.exit(0);
             }
         });
     }
@@ -137,12 +167,23 @@ pub fn maybe_spawn(handle: AppHandle) {
         let handle = extension_handle.clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-            let Some(resolved) = crate::downloader::resolvers::resolve(&video_url).await else {
+            let Some(resolved) = crate::downloader::resolvers::resolve(&handle, &video_url).await else {
                 eprintln!("[digbear][test] page video: no resolver");
                 return;
             };
             match resolved {
                 Ok((id, media)) => {
+                    // 只解析不下载：诊断用（网络慢时不必真的拉完整视频）。
+                    if std::env::var("DIGBEAR_TEST_RESOLVE").ok().as_deref() == Some("1") {
+                        eprintln!(
+                            "[digbear][test] resolve ok id={} video={} audio={:?} container={}",
+                            id,
+                            media.video.url,
+                            media.audio.as_ref().map(|audio| audio.url.as_str()),
+                            media.container
+                        );
+                        return;
+                    }
                     let target = std::path::Path::new("/tmp/dig-bear-page-video.mp4");
                     let _ = tokio::fs::remove_file(target).await;
                     match crate::downloader::resolvers::download(&handle, &media, target, |_, _| {}).await {

@@ -40,7 +40,10 @@ pub trait PageVideoResolver: Send + Sync {
     /// Cheap host/path check; must not perform network requests.
     fn supports(&self, url: &str) -> bool;
     /// Extract direct stream URLs. Downloads and muxing are shared.
-    async fn resolve(&self, url: &str) -> Result<ResolvedMedia, String>;
+    ///
+    /// The app handle lets a resolver read cookies from the in-app sign-in
+    /// session: some sites (YouTube) reject anonymous requests as bots.
+    async fn resolve(&self, app: &tauri::AppHandle, url: &str) -> Result<ResolvedMedia, String>;
 }
 
 /// Ordered resolver chain. Add new (or replacement) resolvers at the front.
@@ -54,7 +57,10 @@ pub fn supports(url: &str) -> bool {
 }
 
 /// Resolve a page video, falling through to the next supporting resolver on failure.
-pub async fn resolve(url: &str) -> Option<Result<(String, ResolvedMedia), String>> {
+pub async fn resolve(
+    app: &tauri::AppHandle,
+    url: &str,
+) -> Option<Result<(String, ResolvedMedia), String>> {
     let mut matched = false;
     let mut last_error = String::new();
     for resolver in registry() {
@@ -62,7 +68,7 @@ pub async fn resolve(url: &str) -> Option<Result<(String, ResolvedMedia), String
             continue;
         }
         matched = true;
-        match resolver.resolve(url).await {
+        match resolver.resolve(app, url).await {
             Ok(media) => return Some(Ok((resolver.id().to_string(), media))),
             Err(error) => {
                 eprintln!("[digbear] resolver {} failed: {error}", resolver.id());

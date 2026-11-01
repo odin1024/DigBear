@@ -19,6 +19,39 @@ use std::time::Duration;
 const WATCH_BASE: &str = "https://www.youtube.com/watch?v=";
 const VISIONOS_UA: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15";
+const ANDROID_UA: &str =
+    "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip";
+const IOS_UA: &str =
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
+
+/// 一个 innertube 客户端身份。
+///
+/// 只用 VISIONOS 的话，遇到「Sign in to confirm you're not a bot」这种
+/// IP 级风控就没辙了 —— 换一个 client 身份通常就能拿到直链。
+struct ClientSpec {
+    name: &'static str,
+    version: &'static str,
+    user_agent: &'static str,
+    /// 设备形态：决定要补哪些客户端字段。
+    form: ClientForm,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum ClientForm {
+    /// 桌面 / 嵌入播放器。
+    Desktop,
+    Android,
+    Ios,
+}
+
+/// 按顺序尝试的客户端列表。
+fn clients() -> Vec<ClientSpec> {
+    vec![
+        ClientSpec { name: "VISIONOS", version: "1.02", user_agent: VISIONOS_UA, form: ClientForm::Desktop },
+        ClientSpec { name: "ANDROID", version: "19.09.37", user_agent: ANDROID_UA, form: ClientForm::Android },
+        ClientSpec { name: "IOS", version: "19.29.1", user_agent: IOS_UA, form: ClientForm::Ios },
+    ]
+}
 
 fn youtube_id(raw: &str) -> Option<String> {
     let url = url::Url::parse(raw).ok()?;
@@ -48,6 +81,14 @@ fn http_client() -> Result<reqwest::Client, String> {
     crate::core::net::client_with_user_agent(VISIONOS_UA, Duration::from_secs(1800))
 }
 
+/// 有登录 Cookie 时才加 Cookie 头。
+fn with_cookie(request: reqwest::RequestBuilder, cookie: &str) -> reqwest::RequestBuilder {
+    if cookie.trim().is_empty() {
+        return request;
+    }
+    request.header(reqwest::header::COOKIE, cookie)
+}
+
 pub struct YoutubeResolver;
 
 #[async_trait]
@@ -60,11 +101,14 @@ impl PageVideoResolver for YoutubeResolver {
         youtube_id(url).is_some()
     }
 
-    async fn resolve(&self, url: &str) -> Result<ResolvedMedia, String> {
+    async fn resolve(&self, app: &tauri::AppHandle, url: &str) -> Result<ResolvedMedia, String> {
         let video_id = youtube_id(url)
             .ok_or_else(|| "无法识别这个 YouTube 链接。".to_string())?;
+        // Reuse the cookie from an in-app YouTube sign-in when there is one:
+        // it is what gets us past the "confirm you're not a bot" check.
+        let cookie = crate::session::cookie_header_for(app, url);
         let client = http_client()?;
-        let formats = fetch_formats(&client, &video_id).await?;
+        let formats = fetch_formats(&client, &video_id, &cookie).await?;
         Ok(ResolvedMedia {
             page_url: format!("{WATCH_BASE}{video_id}"),
             video: StreamAsset {
@@ -91,79 +135,123 @@ struct Formats {
     audio_size: Option<u64>,
 }
 
-async fn fetch_formats(client: &reqwest::Client, video_id: &str) -> Result<Formats, String> {
-    let mut last_reason = String::from("YouTube 没有返回可下载的视频流。");
-    for attempt in 0..3 {
-        if attempt > 0 {
-            tokio::time::sleep(Duration::from_millis(500)).await;
-        }
+/// 这个页面是不是一个 YouTube 观看页。
+pub fn is_youtube_page(page_url: &str) -> bool {
+    youtube_id(page_url).is_some()
+}
 
-        let page = client
+/// 页面里的视频 id（用于文件名与去重）。
+pub fn page_video_id(page_url: &str) -> Option<String> {
+    youtube_id(page_url)
+}
+
+/// 组装 innertube 播放器请求体。
+fn player_body(spec: &ClientSpec, video_id: &str, visitor: &str) -> Value {
+    let mut client = serde_json::json!({
+        "clientName": spec.name,
+        "clientVersion": spec.version,
+        "userAgent": spec.user_agent,
+        "hl": "en",
+        "visitorData": visitor,
+    });
+    match spec.form {
+        ClientForm::Android => {
+            client["deviceMake"] = serde_json::json!("Xiaomi");
+            client["deviceModel"] = serde_json::json!("Redmi Note 3");
+            client["osName"] = serde_json::json!("Android");
+            client["osVersion"] = serde_json::json!("11");
+            client["androidSdkVersion"] = serde_json::json!(30);
+        }
+        ClientForm::Ios => {
+            client["deviceMake"] = serde_json::json!("Apple");
+            client["deviceModel"] = serde_json::json!("iPhone16,2");
+            client["osName"] = serde_json::json!("iPhone");
+            client["osVersion"] = serde_json::json!("17.5.1.21F90");
+        }
+        ClientForm::Desktop => {}
+    }
+    serde_json::json!({
+        "context": { "client": client },
+        "videoId": video_id,
+        "contentCheckOk": true,
+        "racyCheckOk": true,
+    })
+}
+
+/// 向 innertube 要视频流。
+///
+/// 单个客户端身份会被 IP 级风控挡掉（"Sign in to confirm you're not a bot"），
+/// 所以这里准备了几种客户端身份依次尝试 —— 任意一种成功就收工。
+async fn fetch_formats(
+    client: &reqwest::Client,
+    video_id: &str,
+    cookie: &str,
+) -> Result<Formats, String> {
+    let page = with_cookie(
+        client
             .get(format!("{WATCH_BASE}{video_id}&hl=en"))
             .timeout(Duration::from_secs(60))
-            .header("Accept-Language", "en-US,en;q=0.9")
-            .send()
-            .await
-            .map_err(|error| format!("无法访问 YouTube: {error}"))?
-            .text()
-            .await
-            .map_err(|error| format!("读取 YouTube 页面失败: {error}"))?;
+            .header("Accept-Language", "en-US,en;q=0.9"),
+        cookie,
+    )
+        .send()
+        .await
+        .map_err(|error| format!("无法访问 YouTube: {error}"))?
+        .text()
+        .await
+        .map_err(|error| format!("读取 YouTube 页面失败: {error}"))?;
 
-        let api_key = capture(r#""INNERTUBE_API_KEY":"([^"]+)""#, &page)
-            .ok_or_else(|| "YouTube 页面结构变化：没有找到 API key。".to_string())?;
-        let visitor = capture(r#""VISITOR_DATA":"([^"]+)""#, &page)
-            .ok_or_else(|| "YouTube 页面结构变化：没有找到访客标识。".to_string())?;
+    let api_key = capture(r#""INNERTUBE_API_KEY":"([^"]+)""#, &page)
+        .ok_or_else(|| "YouTube 页面结构变化：没有找到 API key。".to_string())?;
+    let visitor = capture(r#""VISITOR_DATA":"([^"]+)""#, &page)
+        .ok_or_else(|| "YouTube 页面结构变化：没有找到访客标识。".to_string())?;
 
-        let body = serde_json::json!({
-            "context": {
-                "client": {
-                    "clientName": "VISIONOS",
-                    "clientVersion": "1.02",
-                    "deviceMake": "Apple",
-                    "deviceModel": "RealityDevice17,1",
-                    "userAgent": VISIONOS_UA,
-                    "osName": "visionOS",
-                    "osVersion": "26.5.23O471",
-                    "hl": "en",
-                    "visitorData": visitor,
-                }
-            },
-            "videoId": video_id,
-            "contentCheckOk": true,
-            "racyCheckOk": true,
-        });
-
-        let response = client
-            .post(format!(
-                "https://www.youtube.com/youtubei/v1/player?key={api_key}&prettyPrint=false"
-            ))
-            .timeout(Duration::from_secs(60))
-            .header("Content-Type", "application/json")
-            .header("X-Goog-Visitor-Id", visitor)
-            .header("X-YouTube-Client-Name", "101")
-            .header("X-YouTube-Client-Version", "1.02")
-            .header("Origin", "https://www.youtube.com")
-            .header("Referer", format!("{WATCH_BASE}{video_id}"))
-            .header("Accept-Language", "en-US,en;q=0.9")
+    let mut last_reason = String::from("YouTube 没有返回可下载的视频流。");
+    for spec in clients() {
+        let body = player_body(&spec, video_id, visitor);
+        let response = match with_cookie(
+            client
+                .post(format!(
+                    "https://www.youtube.com/youtubei/v1/player?key={api_key}&prettyPrint=false"
+                ))
+                .timeout(Duration::from_secs(60))
+                .header("Content-Type", "application/json")
+                .header("X-Goog-Visitor-Id", visitor)
+                .header("Origin", "https://www.youtube.com")
+                .header("Referer", format!("{WATCH_BASE}{video_id}"))
+                .header("Accept-Language", "en-US,en;q=0.9"),
+            cookie,
+        )
             .json(&body)
             .send()
             .await
-            .map_err(|error| format!("请求 YouTube 播放器失败: {error}"))?;
+        {
+            Ok(response) => response,
+            Err(error) => {
+                last_reason = format!("请求 YouTube 播放器失败: {error}");
+                continue;
+            }
+        };
         if !response.status().is_success() {
             last_reason = format!("YouTube 播放器返回 HTTP {}。", response.status());
             continue;
         }
-        let data: Value = response
-            .json()
-            .await
-            .map_err(|error| format!("YouTube 播放器数据无法解析: {error}"))?;
+        let data: Value = match response.json().await {
+            Ok(data) => data,
+            Err(error) => {
+                last_reason = format!("YouTube 播放器数据无法解析: {error}");
+                continue;
+            }
+        };
 
         let status = data["playabilityStatus"]["status"].as_str().unwrap_or("");
         if status != "OK" {
-            last_reason = data["playabilityStatus"]["reason"]
+            let reason = data["playabilityStatus"]["reason"]
                 .as_str()
                 .map(str::to_string)
                 .unwrap_or_else(|| format!("YouTube 拒绝播放（{status}）。"));
+            eprintln!("[digbear] youtube client {} rejected: {reason}", spec.name);
+            last_reason = reason;
             continue;
         }
 

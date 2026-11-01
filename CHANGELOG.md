@@ -13,6 +13,37 @@
 
 > 此处记录尚未发布的变更。发布时按 `docs/RELEASES.md` 的流程整理到正式版本段落。
 
+### 新增 · YouTube 页面级支持
+
+- YouTube 观看页里没有 `<video src>`，光扫 DOM 一个视频都拿不到；
+  现在抓取到这类页面时，会补一个指向页面本身的视频资源，
+  下载阶段由解析器去问 innertube 要最高清的 H.264 视频流与 AAC 音轨，再用 FFmpeg 合并
+- innertube 支持多客户端身份轮换（VISIONOS → ANDROID → IOS）：
+  单个身份被 IP 级风控挡下时（`Sign in to confirm you're not a bot`）还有下一次机会
+- 解析请求会带上应用内登录留下的 Cookie：
+  `PageVideoResolver` 现在能拿到 `AppHandle`，登录过 YouTube 之后不再容易被判成机器人
+
+### 改进 · 抓取更稳更快
+
+- WebView 等待条件加「软期限」：不少 SPA 永远等不到 `readyState == complete`
+  （长连接、轮询、被限速的第三方脚本），但 DOM 早就可读了 —— 内容够了就动手
+- 实测 X（`x.com/NASA`）抓取从 **77 秒（超时后走 HTML 兜底）降到 18 秒**，
+  资源从 14 张图增到 25 张，且不再走兜底路径
+- 页面加载超时从 35 秒放宽到 60 秒，重站点（YouTube、电商首页）不再被误判
+
+### 工程 · 无头自动测试
+
+- 新增 `DIGBEAR_TEST_HEADLESS=1`：跑自动化抓取时藏起主窗口，不打扰正在用电脑的人
+- 新增 `DIGBEAR_TEST_AUTOEXIT=1`：测完自动退出，不用手动关进程
+- 新增 `DIGBEAR_TEST_KINDS=video,image`：只下载指定类型的资源
+- 新增 `DIGBEAR_TEST_RESOLVE=1`：只解析不下载，用来诊断直链是否取得到
+- `devtest.rs` 的 FFmpeg 安装分支也支持自动退出
+
+### 其它
+
+- 仓库地址填为 `https://github.com/odin1024/DigBear`：应用内「开源仓库」、
+  官网源码链接、README 与 CHANGELOG 的比较链接都用它
+
 ### 新增 · 恢复出厂设置
 
 - 设置页新增「数据与关于」卡片，底部一个「恢复出厂设置」按钮：
@@ -238,5 +269,5 @@ Windows 移植版首个正式版本。相对上游 `0.3.2`，补齐了全部 Win
 - `apps/website` 官网仍为上游品牌，待改造
 - 应用未做代码签名
 
-[未发布]: https://github.com/your-org/dig-bear/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/your-org/dig-bear/releases/tag/v0.4.0
+[未发布]: https://github.com/odin1024/DigBear/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/odin1024/DigBear/releases/tag/v0.4.0

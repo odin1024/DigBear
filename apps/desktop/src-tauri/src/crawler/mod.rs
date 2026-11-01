@@ -99,6 +99,45 @@ fn to_resources(page: &RawPage) -> Vec<MediaResource> {
     resources
 }
 
+/// YouTube 观看页里没有 <video src>，光扫 DOM 一个视频都拿不到。
+///
+/// 这里补一个指向页面本身的视频资源：下载阶段由解析器去问 innertube
+/// 要最高清的 H.264 视频流与 AAC 音轨，再用 FFmpeg 合成一个文件。
+async fn youtube_page_resource(
+    final_url: &str,
+    resources: &mut Vec<MediaResource>,
+) -> bool {
+    if !crate::downloader::youtube::is_youtube_page(final_url) {
+        return false;
+    }
+    if resources
+        .iter()
+        .any(|resource| resource.source == ResourceSource::Resolver)
+    {
+        return false;
+    }
+    let Some(video_id) = crate::downloader::youtube::page_video_id(final_url) else {
+        return false;
+    };
+    let Ok(parsed) = Url::parse(final_url) else {
+        return false;
+    };
+    resources.push(MediaResource {
+        id: id_for(&format!("youtube:{video_id}")),
+        url: final_url.to_string(),
+        kind: MediaKind::Video,
+        source: ResourceSource::Resolver,
+        filename_hint: Some(format!("youtube-{video_id}.mp4")),
+        width: None,
+        height: None,
+        duration: None,
+        poster: None,
+        alt: None,
+        host: host_label(&parsed),
+    });
+    true
+}
+
 fn looks_like_login(final_url: &Url, page: &RawPage, resource_count: usize) -> bool {
     let path = final_url.path().to_ascii_lowercase();
     if path.contains("login") || path.contains("signin") || path.contains("passport") {
@@ -158,7 +197,9 @@ pub async fn crawl(
     let host = host_label(&final_url);
     let mut resources = to_resources(&page);
     let twitter_enhanced = twitter::normalize_video_resources(app, &page.final_url, &mut resources).await;
+    let youtube_enhanced = youtube_page_resource(&page.final_url, &mut resources).await;
     let enhanced = twitter_enhanced
+        || youtube_enhanced
         || resources
             .iter()
             .any(|resource| crate::downloader::resolvers::supports(&resource.url));

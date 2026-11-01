@@ -19,12 +19,12 @@ import { SmartImage } from "./components/SmartImage";
 import { VERSION } from "./version";
 
 /**
- * 源码仓库地址。发布时填成实际地址（例如 https://github.com/<org>/dig-bear）。
+ * 源码仓库地址。
  *
  * 留空时，所有指向 GitHub 的入口都会变成「待公布」的占位按钮，
  * 不会把用户带到错误的仓库去。
  */
-const REPO = "";
+const REPO = "https://github.com/odin1024/DigBear";
 
 /** 仓库地址还没公布时，把链接渲染成不可点的占位。 */
 function RepoLink({

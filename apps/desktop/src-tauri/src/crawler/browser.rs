@@ -103,10 +103,15 @@ pub async fn load_and_extract(
         .map_err(|e| AppError::new("crawl_failed", format!("无法创建爬取窗口: {e}")))?;
 
     let result = async {
-        let deadline = std::time::Instant::now() + StdDuration::from_secs(35);
+        // 重站点（YouTube、电商首页）首屏可能要十几秒，给足时间再判定超时。
+        let deadline = std::time::Instant::now() + StdDuration::from_secs(60);
+        // 软期限：不少 SPA 永远等不到 readyState == complete（长连接、轮询、
+        // 被限速的第三方脚本），但 DOM 早就可读了。内容够了就动手，别硬等。
+        let soft_deadline = std::time::Instant::now() + StdDuration::from_secs(20);
         loop {
             if std::time::Instant::now() > deadline {
-                return Err(AppError::new("crawl_failed", "页面加载超时，请检查网址是否可以访问。"));
+                // 超时不再直接报错：下面照样尝试提取一次，能捞多少算多少。
+                break;
             }
             if let Ok(v) = eval_json(
                 &win,
@@ -117,6 +122,21 @@ pub async fn load_and_extract(
             {
                 if v.as_str() == Some("complete") {
                     break;
+                }
+            }
+            if std::time::Instant::now() > soft_deadline {
+                if let Ok(v) = eval_json(
+                    &win,
+                    "JSON.stringify({t: ((document.body && document.body.innerText) || '').length, h: ((document.documentElement && document.documentElement.innerHTML) || '').length})",
+                    StdDuration::from_secs(3),
+                )
+                .await
+                {
+                    let text_len = v.get("t").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let html_len = v.get("h").and_then(|v| v.as_u64()).unwrap_or(0);
+                    if text_len > 200 || html_len > 2000 {
+                        break;
+                    }
                 }
             }
             tokio::time::sleep(StdDuration::from_millis(500)).await;

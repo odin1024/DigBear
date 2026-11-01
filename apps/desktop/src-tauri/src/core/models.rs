@@ -33,6 +33,8 @@ pub enum ResourceSource {
     Iframe,
     /// Shadow DOM 内部抓到的资源。
     Shadow,
+    /// 由站点专用解析器（YouTube / X 等）解析出来的直链。
+    Resolver,
     Fallback,
     Other,
 }

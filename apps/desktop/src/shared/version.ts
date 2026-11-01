@@ -9,7 +9,7 @@ export const APP_VERSION = "0.4.0";
 /**
  * 开源仓库地址。
  *
- * 仓库正式公开前留空：应用与官网都会显示「仓库地址待公布」，
- * 发布时只改这一处，两边同步生效。
+ * 应用里的「开源仓库」入口、官网上的源码链接都指向这里；
+ * 仓库地址变更时只改这一处。
  */
-export const REPO_URL = "";
+export const REPO_URL = "https://github.com/odin1024/DigBear";

@@ -259,6 +259,13 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
+            // 无头测试模式：跑自动化抓取时把主窗口藏起来，
+            // 不打扰正在用电脑的人（抓取本身跑在隐藏的 crawl-worker 里）。
+            if std::env::var("DIGBEAR_TEST_HEADLESS").ok().as_deref() == Some("1") {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
             fit_window_to_work_area(app.handle());
             let start_url = parse_crawl_arg(std::env::args().skip(1));
             let start_folder = parse_folder_arg(std::env::args().skip(1));
