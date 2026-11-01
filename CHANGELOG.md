@@ -35,6 +35,15 @@
 - 删掉 `apps/desktop/public/assets` 里 7 张没人引用的 PNG（约 3.6 MB）：
   前端实际只用 WebP，这些 PNG 只是白白撑大安装包
 
+### 修复 · 安装包瘦身一半
+
+- `scripts/build_windows.ps1` 用 `robocopy /E` 同步源码，它只增不删：
+  `dist` 里越积越多的历史 `index-*.js/css` 和已删除的图片全被打进安装包
+- 现在同步前先清空 `dist`，重新打包后：
+  **NSIS 安装包 14.92 MB → 7.23 MB，MSI 19.09 MB → 10.67 MB**（功能无变化）
+- `devtest`/`run_unit_tests` 之外顺带修了 CI：macOS runner 排队会被取消、
+  把整个 workflow 拖成 cancelled，现在只在 Windows 上跑检查
+
 ## [0.4.0] - 2026-11-01
 
 Windows 移植版的首个正式发布版。相对上游 `0.3.2`，补齐了全部 Windows 平台分支，

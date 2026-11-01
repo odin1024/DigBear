@@ -38,6 +38,12 @@ if (-not (Test-Path $BuildDir)) {
 Write-Step "同步源码到 $BuildDir"
 $desktopCopy = Join-Path $BuildDir "apps\desktop"
 New-Item -ItemType Directory -Force -Path $desktopCopy | Out-Null
+
+# 清掉上一次的前端产物再同步：robocopy /E 只增不删，dist 里会不断堆积
+# 历史 index-*.js 和已经删掉的图片，安装包会把这些垃圾一起打进去。
+$staleDist = Join-Path $desktopCopy "dist"
+if (Test-Path $staleDist) { Remove-Item -LiteralPath $staleDist -Recurse -Force }
+
 robocopy $Desktop $desktopCopy /E /XD node_modules target /NFL /NDL /NJH /NJS /MT:8 | Out-Null
 
 # GNU 工具链下 cdylib 会导出超过 255 个符号，链接直接失败；只要 rlib 即可。
