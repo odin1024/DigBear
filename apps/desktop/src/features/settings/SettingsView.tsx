@@ -163,10 +163,32 @@ export function SettingsView({
             <h1>{t("设置", "Settings")}</h1>
           </header>
           <div className="panel settings-loading">
-            <p>{error?.message || t("设置读取失败。", "Could not load settings.")}</p>
-            <button type="button" className="rb-text-link" onClick={onRefresh}>
-              {t("重新读取", "Reload")}
-            </button>
+            {error?.code === "not_tauri" ? (
+              <>
+                <p className="settings-loading__title">
+                  {t("这里是浏览器里的界面预览", "This is the browser preview")}
+                </p>
+                <p>
+                  {t(
+                    "翻找、下载、登录都依赖桌面端能力，浏览器里跑不起来。装好桌面版掘掘熊后再来体验完整功能。",
+                    "Crawling, downloading and sign-in need the desktop app. Install DigBear for Windows to try the full thing.",
+                  )}
+                </p>
+                <p className="settings-hint">
+                  {t(
+                    "想先看看长什么样？这里的配色、布局、吉祥物都是真的。",
+                    "Colors, layout and mascots here are exactly what the desktop app looks like.",
+                  )}
+                </p>
+              </>
+            ) : (
+              <>
+                <p>{error?.message || t("设置读取失败。", "Could not load settings.")}</p>
+                <button type="button" className="rb-text-link" onClick={onRefresh}>
+                  {t("重新读取", "Reload")}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>

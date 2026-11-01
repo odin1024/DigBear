@@ -34,6 +34,11 @@ Cookie 不会离开这台电脑。
 - **高清优先**：X（Twitter）优先取 master playlist；YouTube 走 innertube 接口取最高清的
   H.264 视频流与 AAC 音轨，再合并。
 - **系统代理**：支持 `HTTPS_PROXY` 等环境变量，以及 Windows 的 WinINET 系统代理设置。
+- **浏览器扩展**：Chrome / Edge 扩展一键把当前页交给掘掘熊翻找。
+- **深链唤起**：注册 `digbear://` 协议，链接、脚本都能直接触发翻找。
+- **资源管理器右键**：右键文件夹 →「用掘掘熊翻找链接」，自动收集本地快捷方式与文本里的网址。
+- **批量队列**：一次提交多个网址排队翻找，结果合并成一份清单。
+- **历史与收藏**：常翻的站点一键再来，最近翻找自动记录。
 
 ## 先试试看（不用装任何东西）
 
@@ -119,7 +124,7 @@ HLS/DASH 下载与音视频合并需要 FFmpeg。应用内
 pnpm install
 pnpm test:rust           # Rust 单元测试
 pnpm build               # 前端构建
-pnpm check-version       # 校验 5 处版本号一致
+pnpm check-version       # 校验 8 处版本号一致
 pnpm build:desktop:windows
 ```
 
@@ -136,3 +141,17 @@ pnpm build:desktop:windows
 ## 致谢
 
 上游作者 [xw-meow](https://github.com/xw-meow) 与所有贡献者。许可与致谢见 [`NOTICE.md`](./NOTICE.md)。
+
+## 联系与反馈
+
+遇到问题、有好想法，或者想提一条建议？欢迎直接联系：
+
+<div align="center">
+  <img src="./apps/website/public/assets/author-qr.png" alt="掘掘熊公众号二维码" width="220" />
+</div>
+
+- **公众号**：微信扫一扫，关注「掘掘熊」后直接留言，反馈会更快看到。
+- **GitHub Issue**：功能建议、缺陷报告都可以提 issue（仓库地址公布后在此更新）。
+- **应用内**：打开「关于」页也能扫到同一个二维码。
+
+> 反馈问题时如果能附上目标网址、复现步骤和截图，会更省时间。

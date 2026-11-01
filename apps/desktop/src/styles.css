@@ -2780,6 +2780,19 @@ h3 {
   color: var(--muted);
 }
 
+.settings-loading__title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.settings-loading p {
+  max-width: 460px;
+  margin: 0 auto 10px;
+  line-height: 1.8;
+}
+
 .folder-field {
   display: flex;
   align-items: center;
