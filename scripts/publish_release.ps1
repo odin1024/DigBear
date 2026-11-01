@@ -1,4 +1,4 @@
-# 发布脚本：建仓库 -> 推代码 -> 打标签 -> 发 Release
+﻿# 发布脚本：建仓库 -> 推代码 -> 打标签 -> 发 Release
 #
 # 用法：
 #   $env:GITHUB_TOKEN = "ghp_xxx"      # 需要 repo 权限的 Personal Access Token
@@ -9,17 +9,37 @@
 #   -Version        版本号，默认读 apps/desktop/src-tauri/tauri.conf.json
 #   -SkipRelease    只推代码和标签，让 GitHub Actions 自动构建发布
 #   -NoCreateRepo   不尝试自动创建仓库（已存在时默认也会跳过）
+#   -SkipGit        跳过推代码与打标签（只做 Release）
 
 param(
     [string]$Repo = "odin1024/DigBear",
     [string]$Version = "",
     [switch]$SkipRelease,
-    [switch]$NoCreateRepo
+    [switch]$NoCreateRepo,
+    [switch]$SkipGit
 )
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
+
+function Resolve-Git {
+    # 发布脚本可能被最小化的环境调用，PATH 里未必有 & $Git —— 自己找一遍。
+    $cmd = Get-Command git -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    $candidates = @(
+        "F:\Program Files\Git\cmd\git.exe",
+        "C:\Program Files\Git\cmd\git.exe",
+        "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe",
+        "$env:USERPROFILE\scoop\shims\git.exe"
+    )
+    foreach ($candidate in $candidates) {
+        if (Test-Path $candidate) { return $candidate }
+    }
+    throw "找不到 git 可执行文件，请先安装 Git 或把 git 加进 PATH。"
+}
+
+$Git = Resolve-Git
 
 function Write-Step($message) {
     Write-Host "==> $message" -ForegroundColor Cyan
@@ -39,11 +59,11 @@ if (-not $Token -and -not $NoCreateRepo) {
 # ---------- 1. 远端地址 ----------
 Write-Step "配置远端仓库 $Repo"
 $remote = "ssh://git@github.com/$Repo.git"
-git remote get-url origin 2>$null | Out-Null
+$null = & $Git remote get-url origin 2>$null
 if ($LASTEXITCODE -eq 0) {
-    git remote set-url origin $remote
+    & $Git remote set-url origin $remote
 } else {
-    git remote add origin $remote
+    & $Git remote add origin $remote
 }
 
 # ---------- 2. 仓库不存在就建一个 ----------
@@ -66,25 +86,29 @@ if (-not $NoCreateRepo) {
             private = $false
             auto_init = $false
         } | ConvertTo-Json
-        Invoke-RestMethod -Uri "https://api.github.com/user/repos" -Headers $headers -Method Post -Body $body | Out-Null
+        Invoke-RestMethod -Uri "https://api.github.com/user/repos" -Headers $headers -Method Post -Body $body -ContentType "application/json" | Out-Null
         Write-Host "    已创建" -ForegroundColor Green
     }
 }
 
 # ---------- 3. 推代码 ----------
-Write-Step "推送 main 分支"
-git push -u origin main
-if ($LASTEXITCODE -ne 0) { throw "推送 main 失败" }
+if (-not $SkipGit) {
+    Write-Step "推送 main 分支"
+    & $Git push -u origin main
+    # 用远端实际状态判断成功与否：$LASTEXITCODE 在重定向输出时并不可靠。
+    $remoteHead = (& $Git ls-remote --heads origin main 2>$null)
+    if (-not $remoteHead) { throw "推送 main 失败：远端没有 main 分支" }
 
-# ---------- 4. 打标签 ----------
-$existing = git tag -l $Tag
-if ($existing -eq $Tag) {
-    Write-Step "标签 $Tag 已存在，跳过"
-} else {
-    Write-Step "打标签 $Tag"
-    git tag -a $Tag -m "掘掘熊 DigBear $Tag"
-    git push origin $Tag
-    if ($LASTEXITCODE -ne 0) { throw "推送标签失败" }
+    # ---------- 4. 打标签 ----------
+    $existing = & $Git tag -l $Tag
+    if ($existing -eq $Tag) {
+        Write-Step "标签 $Tag 已存在，跳过"
+    } else {
+        Write-Step "打标签 $Tag"
+        & $Git tag -a $Tag -m "掘掘熊 DigBear $Tag"
+        & $Git push origin $Tag
+        if (-not (& $Git ls-remote --tags origin $Tag 2>$null)) { throw "推送标签失败" }
+    }
 }
 
 if ($SkipRelease) {
@@ -102,7 +126,8 @@ $headers = @{
     "User-Agent" = "DigBear-Publisher"
 }
 $notesFile = "docs/releases/$Tag.md"
-$notes = if (Test-Path $notesFile) { Get-Content $notesFile -Raw } else { "Windows 安装包（NSIS / MSI）。" }
+// -Encoding UTF8 很关键：PowerShell 5.1 默认按 ANSI 读，中文会变成非法字符。
+$notes = if (Test-Path $notesFile) { Get-Content $notesFile -Raw -Encoding UTF8 } else { "Windows 安装包（NSIS / MSI）。" }
 
 $releaseBody = @{
     tag_name = $Tag
@@ -115,11 +140,11 @@ $releaseBody = @{
 $existing = $null
 try { $existing = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/tags/$Tag" -Headers $headers -Method Get } catch {}
 if (-not $existing) {
-    Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases" -Headers $headers -Method Post -Body $releaseBody | Out-Null
+    Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases" -Headers $headers -Method Post -Body $releaseBody -ContentType "application/json" | Out-Null
     Write-Host "    已创建 Release" -ForegroundColor Green
 } else {
     Write-Host "    Release 已存在，更新说明" -ForegroundColor DarkGray
-    Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/$($existing.id)" -Headers $headers -Method Patch -Body $releaseBody | Out-Null
+    Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/$($existing.id)" -Headers $headers -Method Patch -Body $releaseBody -ContentType "application/json" | Out-Null
 }
 
 # ---------- 6. 上传产物 ----------
