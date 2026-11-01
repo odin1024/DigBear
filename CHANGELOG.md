@@ -11,7 +11,29 @@
 
 ## [未发布]
 
-> 暂无未发布变更。新内容先记在这里，发版时按 `docs/RELEASES.md` 的流程整理到正式版本段落。
+> 新内容先记在这里，发版时按 `ddocs/RELEASES.md` 的流程整理到正式版本段落。
+
+### 新增 · 官网托管到 GitHub Pages
+
+- 新增 `.github/workflows/pages.yml`：构建后直接部署到 GitHub Pages，
+  免费、免服务器，地址 <https://odin1024.github.io/DigBear/>
+- 删除原来的腾讯云 COS 部署工作流（需要额外密钥，已被 Pages 取代）
+- 新增 `scripts/make_og_cover.py`：生成 1200×630 社交分享封面
+- README 顶部加「官网 / 下载 / 反馈」快捷入口，仓库主页也指向官网
+
+### 修复
+
+- 官网 `index.html` 的标题、描述、OG 标签**还是上游的**（写着 macOS、超级爬爬熊），
+  全部换成掘掘熊与 Windows 定位
+- 官网 4 处图片引用指向仓库里并不存在的 `assets/generated/*.png`，
+  每个页面白发出 4 个 404 —— 现在按需探测，不再请求不存在的文件
+- 官网遗留的上游标识：包名 `@crawl-bear/website` → `@dig-bear/website`、
+  语言存储键 `crawl-bear-locale` → `digbear-locale`、样式表头注释
+- `ocs/RELEASES.md` 与实现脱节：版本号校验点 5→8 处、去掉已不再产出的 macOS 产物要求
+- `scripts/build_windows.ps1` 写死了本机的 GNU 工具链，别人 clone 下来编不了；
+  现在检测不到 GNU 工具链时自动回退到系统 MSVC
+- 删掉 `apps/desktop/public/assets` 里 7 张没人引用的 PNG（约 3.6 MB）：
+  前端实际只用 WebP，这些 PNG 只是白白撑大安装包
 
 ## [0.4.0] - 2026-11-01
 
