@@ -13,20 +13,20 @@ use tauri::{Emitter, Manager};
 /// 自定义原生菜单栏。
 ///
 /// 结构与界面顶部的导航保持一致：
-/// - DigBear：翻找 / 设置 / 关于
+/// - DigBear：设置 / 关于
 /// - 编辑：撤销 / 重做 / 剪切 / 复制 / 粘贴 / 全选
 /// - 视图：三套主题
 /// - 帮助：开源仓库 / 使用说明
 ///
 /// Windows 上这是标题栏下方的菜单条，macOS 上是系统菜单栏。
 pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Result<()> {
-    let crawler = MenuItemBuilder::with_id("crawler", if english { "Crawl" } else { "翻找" }).build(app)?;
+    // 不放「翻找」：页面顶部导航已经有了，重复一遍反而杂乱。
     let about = MenuItemBuilder::with_id("about", if english { "About" } else { "关于" }).build(app)?;
     let settings = MenuItemBuilder::with_id("settings", if english { "Settings…" } else { "设置…" }).build(app)?;
     let quit = PredefinedMenuItem::quit(app, Some(if english { "Quit DigBear" } else { "退出掘掘熊" }))?;
 
     let app_menu = SubmenuBuilder::new(app, "DigBear")
-        .items(&[&crawler, &settings, &about])
+        .items(&[&settings, &about])
         .separator()
         .item(&quit)
         .build()?;

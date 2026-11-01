@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { GithubIcon, InfoIcon, PawIcon, SlidersIcon } from "../shared/components/Icons";
 import { t } from "../shared/i18n";
 import { REPO_URL } from "../shared/version";
+import { api } from "../shared/api";
 
 export type AppView = "crawler" | "settings" | "about";
 
@@ -94,16 +95,20 @@ export function Masthead({ view, onNavigate }: MastheadProps) {
           </button>
 
           {REPO_URL && (
-            <a
+            <button
+              type="button"
               className="main-nav__github"
-              href={REPO_URL}
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => {
+                void api.openUrl(REPO_URL).catch(() => {
+                  // 浏览器预览模式没有桌面能力，退回到新标签页打开。
+                  window.open(REPO_URL, "_blank", "noopener");
+                });
+              }}
               title={t("在 GitHub 上查看源码", "View source on GitHub")}
               aria-label={t("在 GitHub 上查看源码", "View source on GitHub")}
             >
               <GithubIcon size={17} />
-            </a>
+            </button>
           )}
         </nav>
       </div>

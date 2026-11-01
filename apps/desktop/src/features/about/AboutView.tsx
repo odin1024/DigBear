@@ -5,7 +5,6 @@ import { APP_VERSION } from "../../shared/version";
 import { InfoIcon, LockIcon, SparkIcon } from "../../shared/components/Icons";
 
 const QR_SRC = `${import.meta.env.BASE_URL}assets/author-qr.png`;
-const LOGO_SRC = `${import.meta.env.BASE_URL}assets/bear-logo.webp`;
 
 interface AboutViewProps {
   onOpenSettings: () => void;
@@ -27,25 +26,22 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
     >
-      <section className="about__hero">
-        <img className="about__logo" src={LOGO_SRC} alt="" />
-        <div className="about__hero-text">
-          <h1 className="about__title">
-            {t("掘掘熊", "DigBear")}
-            <span className="about__title-en">DigBear</span>
-          </h1>
-          <p className="about__tagline">
-            {t(
-              "开源的网页媒体翻找小工具，只在你的电脑上只读工作。",
-              "Open-source media crawler that reads pages locally on your computer.",
-            )}
-          </p>
-        </div>
+      <header className="about__head">
+        <h1 className="about__title">
+          {t("关于掘掘熊", "About DigBear")}
+          <span className="about__title-en">DigBear</span>
+        </h1>
+        <p className="about__tagline">
+          {t(
+            "开源的网页媒体翻找小工具，只在你的电脑上只读工作。",
+            "Open-source media crawler that reads pages locally on your computer.",
+          )}
+        </p>
         <p className="about__version">
           <span className="about__version-chip">v{APP_VERSION}</span>
           <span>{t("MIT 许可证 · 完全开源免费", "MIT licensed · free and open source")}</span>
         </p>
-      </section>
+      </header>
 
       <div className="about__grid">
         <article className="about__card about__card--contact">
@@ -147,23 +143,17 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
       </div>
 
       <footer className="about__foot">
-        <span>
-          {t("掘掘熊 DigBear · v", "DigBear · v")}
-          {APP_VERSION}
-          <span className="about__foot-dot">·</span>
-          {t("MIT 开源 · 用得放心", "MIT licensed · use it freely")}
-        </span>
         <button type="button" className="about__foot-link" onClick={onOpenSettings}>
           {t("去设置登录站点", "Open Settings")}
         </button>
+        <span className="about__foot-dot">·</span>
+        <span>
+          {t(
+            "本项目移植自 Crawl Bear（MIT），感谢原作者 xw-meow",
+            "Ported from Crawl Bear (MIT) — thanks to xw-meow",
+          )}
+        </span>
       </footer>
-
-      <p className="about__credits">
-        {t(
-          "本项目移植自开源项目 Crawl Bear（MIT 许可），感谢原作者 xw-meow 与所有贡献者。",
-          "Ported from the open-source Crawl Bear project (MIT). Thanks to xw-meow and all contributors.",
-        )}
-      </p>
     </motion.div>
   );
 }
