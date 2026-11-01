@@ -43,12 +43,38 @@ pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Re
     Ok(())
 }
 
+/// 启动时用 `--folder <path>` 指定的文件夹，界面会把这个文件夹里的网址收进队列。
+///
+/// 配合资源管理器右键菜单使用。
+pub struct StartFolder(pub Option<String>);
+
+/// 从命令行参数里取 `--folder <path>`。
+fn parse_folder_arg<I: Iterator<Item = String>>(mut args: I) -> Option<String> {
+    while let Some(arg) = args.next() {
+        if let Some(path) = arg.strip_prefix("--folder=") {
+            return Some(path.trim().to_string()).filter(|value| !value.is_empty());
+        }
+        if arg == "--folder" {
+            return args
+                .next()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty());
+        }
+    }
+    None
+}
+
 /// 启动时用 `--crawl <url>` 指定的网址，界面会直接翻好并停在结果页。
 ///
 /// 用来做脚本化批处理，或开机自动翻找某个固定站点。
 pub struct StartUrl(pub Option<String>);
 
-/// 从命令行参数里取 `--crawl <url>`（也接受 `--crawl=<url>`）。
+/// 从命令行参数里取要翻找的网址。
+///
+/// 支持三种写法：
+/// - `--crawl <url>` / `--crawl=<url>`：脚本化批处理
+/// - `--deep-link <link>`：协议处理程序传进来的深链
+/// - `digbear://crawl?url=<encoded>`：浏览器扩展唤起的深链
 fn parse_crawl_arg<I: Iterator<Item = String>>(mut args: I) -> Option<String> {
     while let Some(arg) = args.next() {
         if let Some(url) = arg.strip_prefix("--crawl=") {
@@ -56,6 +82,39 @@ fn parse_crawl_arg<I: Iterator<Item = String>>(mut args: I) -> Option<String> {
         }
         if arg == "--crawl" {
             return args.next().map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
+        }
+        if arg == "--deep-link" {
+            if let Some(link) = args.next() {
+                if let Some(url) = url_from_deep_link(&link) {
+                    return Some(url);
+                }
+            }
+            continue;
+        }
+        if let Some(url) = url_from_deep_link(&arg) {
+            return Some(url);
+        }
+    }
+    None
+}
+
+/// 从 `digbear://crawl?url=<encoded>` 里取出网址。
+fn url_from_deep_link(link: &str) -> Option<String> {
+    let trimmed = link.trim();
+    let rest = trimmed.strip_prefix("digbear://")?;
+    let query = rest.split_once('?').map(|(_, value)| value).unwrap_or("");
+    for pair in query.split('&') {
+        let Some((key, value)) = pair.split_once('=') else { continue };
+        if key != "url" {
+            continue;
+        }
+        let decoded = percent_encoding::percent_decode_str(value)
+            .decode_utf8()
+            .ok()?
+            .trim()
+            .to_string();
+        if !decoded.is_empty() {
+            return Some(decoded);
         }
     }
     None
@@ -164,16 +223,26 @@ fn fit_window_to_work_area(app: &tauri::AppHandle) {
 
 pub fn run() {
     tauri::Builder::default()
+        // 已经在跑的时候再被唤起（浏览器扩展点右键菜单就是这条路），
+        // 不再开第二个窗口，而是把网址转给已有窗口。
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            if let Some(url) = parse_crawl_arg(argv.into_iter()) {
+                let _ = app.emit("deep-link", url);
+            }
+            show_main_window(app);
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             fit_window_to_work_area(app.handle());
             let start_url = parse_crawl_arg(std::env::args().skip(1));
+            let start_folder = parse_folder_arg(std::env::args().skip(1));
             if let Some(url) = start_url.as_ref() {
                 eprintln!("[digbear] 启动即翻找: {url}");
             }
             app.manage(StartUrl(start_url));
+            app.manage(StartFolder(start_folder));
             let state = core::state::AppState::new(app.handle())?;
             app.manage(state);
             build_tray(app.handle());
@@ -188,6 +257,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::app_start_url,
+            commands::app_start_folder,
             commands::disk_space,
             commands::export_list,
             commands::save_settings,
@@ -213,6 +283,7 @@ pub fn run() {
             commands::toggle_favorite,
             commands::remove_favorite,
             commands::read_clipboard,
+            commands::scan_folder_urls,
         ])
         .run(tauri::generate_context!())
         .expect("error while running DigBear");

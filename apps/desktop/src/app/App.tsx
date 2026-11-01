@@ -26,6 +26,7 @@ export default function App({ onThemeChange }: AppProps) {
   const [settingsError, setSettingsError] = useState<AppError | null>(null);
   const [prefillUrl, setPrefillUrl] = useState("");
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const [pendingFolder, setPendingFolder] = useState<string | null>(null);
   const [settingsWarm, setSettingsWarm] = useState(false);
 
   const locale = settings ? resolveLocale(settings.language) : detectLocale();
@@ -96,6 +97,23 @@ export default function App({ onThemeChange }: AppProps) {
       })
       .catch(() => {
         /* 命令行翻找是可选能力，取不到就忽略 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [inTauriApp]);
+
+  /* 命令行 `--folder <path>`：资源管理器右键菜单进来的文件夹。 */
+  useEffect(() => {
+    if (!inTauriApp) return;
+    let cancelled = false;
+    void api
+      .startFolder()
+      .then((folder) => {
+        if (!cancelled && folder) setPendingFolder(folder);
+      })
+      .catch(() => {
+        /* 取不到就忽略 */
       });
     return () => {
       cancelled = true;
@@ -201,6 +219,7 @@ export default function App({ onThemeChange }: AppProps) {
             settingsLoading={settingsLoading}
             resetSignal={resetSignal}
             initialUrl={pendingUrl}
+            initialFolder={pendingFolder}
             onOpenSettings={openSettings}
           />
         </div>

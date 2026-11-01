@@ -29,6 +29,7 @@ COPIED = [
     os.path.join("core", "classify.rs"),
     os.path.join("core", "url.rs"),
     os.path.join("core", "history.rs"),
+    os.path.join("core", "folder.rs"),
     os.path.join("core", "manifest.rs"),
     os.path.join("downloader", "paths.rs"),
 ]
@@ -105,6 +106,7 @@ LIB_RS = '''pub mod core {
     pub mod classify;
     pub mod url;
     pub mod history;
+    pub mod folder;
     pub mod manifest;
 }
 pub mod downloader;
@@ -124,6 +126,46 @@ def workspace_dir():
         if os.path.isdir(candidate):
             return os.path.join(candidate, "unit-harness")
     return os.path.join(ROOT, "_test-artifacts", "unit-harness")
+
+
+def apply_toolchain_env(env):
+    """把 GNU 工具链塞进环境变量。
+
+    Windows 上默认可能是 MSVC 工具链（没有 link.exe 就编不过），
+    这里统一切到 rustup 的 stable-x86_64-pc-windows-gnu，并保证 MinGW
+    的 bin 排在 PATH 最前面（dlltool 会 CreateProcess 失败）。
+    """
+    # 注意：os.path.join("D:", "x") 得到的是 "D:x"（不是 "D:\x"），
+    # 所以盘符路径必须自己拼反斜杠。
+    rustlib_root = os.environ.get("RUSTUP_HOME") or "D:\\.rustup"
+    if not os.path.isdir(rustlib_root):
+        rustlib_root = os.path.join(os.path.expanduser("~"), ".rustup")
+    env["RUSTUP_HOME"] = rustlib_root
+
+    cargo_home = os.environ.get("CARGO_HOME") or "D:\\.cargo"
+    if os.path.isdir(cargo_home):
+        env["CARGO_HOME"] = cargo_home
+
+    toolchain = env.get("RUSTUP_TOOLCHAIN") or os.environ.get("RUSTUP_TOOLCHAIN")
+    if not toolchain:
+        gnu = os.path.join(rustlib_root, "toolchains", "stable-x86_64-pc-windows-gnu")
+        if os.path.isdir(gnu):
+            toolchain = "stable-x86_64-pc-windows-gnu"
+    if toolchain:
+        env["RUSTUP_TOOLCHAIN"] = toolchain
+        # 不要加 link-self-contained=yes：那会强制使用 rust 自带的
+        # self-contained\dlltool.exe，它在 Windows 上会 CreateProcess 失败。
+        env["RUSTFLAGS"] = env.get("RUSTFLAGS") or "-C linker=rust-lld"
+    extra = []
+    gnu_bin = "D:\\tmp-toolchain\\mingw64\\bin"
+    if os.path.isdir(gnu_bin):
+        extra.append(gnu_bin)
+    # 注意：rust 自带的 self-contained\dlltool.exe 会优先于 PATH 被选中，
+    # 它在 Windows 上会 CreateProcess 失败，所以这里不放它，只让 MinGW 的
+    # dlltool 通过 PATH 生效（配合 RUSTFLAGS 的 link-self-contained=yes）。
+    env.setdefault("PATH", "")
+    if extra:
+        env["PATH"] = ";".join(extra) + ";" + env.get("PATH", "")
 
 
 def main():
@@ -149,6 +191,7 @@ def main():
 
     env = dict(os.environ)
     env.setdefault("CARGO_TARGET_DIR", os.path.join(target, "target"))
+    apply_toolchain_env(env)
     print("unit test crate: %s" % target, flush=True)
     result = subprocess.run(
         ["cargo", "test", "--quiet"],

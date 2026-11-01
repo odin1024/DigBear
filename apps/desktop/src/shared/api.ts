@@ -135,6 +135,13 @@ export interface SessionInfo {
   cookies: number;
 }
 
+/** 本地文件夹扫描结果（资源管理器右键菜单用）。 */
+export interface FolderScan {
+  urls: string[];
+  scanned_files: number;
+  scanned_dirs: number;
+}
+
 export interface CrawlRequest {
   url: string;
   kinds: MediaKind[];
@@ -275,6 +282,10 @@ export const api = {
   settings: () => call<AppSettings>("get_settings"),
   /** 命令行 `--crawl <url>` 指定的网址（没有则返回 null）。 */
   startUrl: () => call<string | null>("app_start_url"),
+  /** 命令行 `--folder <path>` 指定的文件夹（没有则返回 null）。 */
+  startFolder: () => call<string | null>("app_start_folder"),
+  /** 扫描本地文件夹里的网址。 */
+  scanFolderUrls: (path: string) => call<FolderScan>("scan_folder_urls", { path }),
   saveSettings: (settings: AppSettings) =>
     call<AppSettings>("save_settings", { settings }),
   pickDownloadDir: () => call<string | null>("pick_download_dir"),

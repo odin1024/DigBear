@@ -101,6 +101,8 @@ interface CrawlerViewProps {
   resetSignal: number;
   /** 命令行 `--crawl <url>` 指定的网址；有值时自动开始翻找。 */
   initialUrl?: string | null;
+  /** 命令行 `--folder <path>` 指定的文件夹；有值时把里面的网址收进队列。 */
+  initialFolder?: string | null;
   onOpenSettings: (prefillUrl?: string) => void;
 }
 
@@ -127,6 +129,7 @@ export function CrawlerView({
   settingsLoading,
   resetSignal,
   initialUrl,
+  initialFolder,
   onOpenSettings,
 }: CrawlerViewProps) {
   const { message } = AntApp.useApp();
@@ -548,6 +551,65 @@ export function CrawlerView({
     setUrl(initialUrl);
     void crawlRef.current(initialUrl);
   }, [initialUrl]);
+
+  /* 命令行 `--folder <path>`：把文件夹里的网址收进队列并开始翻找。 */
+  const scannedFolder = useRef(false);
+  useEffect(() => {
+    if (!initialFolder || scannedFolder.current) return;
+    scannedFolder.current = true;
+    void api
+      .scanFolderUrls(initialFolder)
+      .then((scan) => {
+        if (scan.urls.length === 0) {
+          message.info(
+            t(
+              "这个文件夹里没有找到网址。",
+              "No URLs found in that folder."
+            )
+          );
+          return;
+        }
+        setQueue(scan.urls);
+        message.success(
+          t(
+            `从文件夹里找到 ${scan.urls.length} 个网址，开始翻找。`,
+            `Found ${scan.urls.length} URLs in that folder. Starting…`
+          )
+        );
+        void crawlRef.current();
+      })
+      .catch((error) => {
+        message.error(toAppError(error).message);
+      });
+  }, [initialFolder, message]);
+
+  /* 深链：浏览器扩展唤起时把网址转过来。 */
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    listen<string>("deep-link", (event) => {
+      const payload = event.payload ?? "";
+      const target =
+        normalizeHttpUrl(payload.trim()) ?? normalizeHttpUrl(extractUrl(payload));
+      if (!target) {
+        message.warning(t("这个链接打不开。", "That link cannot be opened."));
+        return;
+      }
+      setUrl(target);
+      void crawlRef.current(target);
+    })
+      .then((off) => {
+        if (disposed) off();
+        else unlisten = off;
+      })
+      .catch(() => {
+        /* 预览模式没有事件系统 */
+      });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [message]);
 
   useEffect(() => {
     crawlRef.current = handleCrawl;

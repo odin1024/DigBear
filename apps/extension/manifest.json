@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "掘掘熊 DigBear",
+  "version": "0.4.0",
+  "description": "在网页上右键，用掘掘熊翻找这一页的图片与视频。",
+  "permissions": ["contextMenus"],
+  "background": { "service_worker": "background.js" },
+  "icons": {
+    "32": "icons/32.png",
+    "128": "icons/128.png"
+  },
+  "action": {
+    "default_title": "用掘掘熊翻找此页",
+    "default_icon": {
+      "32": "icons/32.png",
+      "128": "icons/128.png"
+    }
+  }
+}

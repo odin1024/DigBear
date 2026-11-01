@@ -26,6 +26,7 @@ async-trait = "0.1"
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-single-instance = "2"
 dirs = "7"
 
 # Windows resolves the system proxy from the WinINET registry hive.

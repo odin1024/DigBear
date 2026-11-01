@@ -75,6 +75,14 @@ pub async fn app_start_url(start: State<'_, crate::StartUrl>) -> Result<Option<S
     Ok(start.0.clone())
 }
 
+/// 命令行 `--folder <path>` 指定的文件夹；没有则为 None。
+#[tauri::command]
+pub async fn app_start_folder(
+    start: State<'_, crate::StartFolder>,
+) -> Result<Option<String>, AppError> {
+    Ok(start.0.clone())
+}
+
 #[tauri::command]
 pub async fn save_settings(
     state: State<'_, AppState>,
@@ -355,6 +363,19 @@ pub fn remove_favorite(
     url: String,
 ) -> Result<Vec<FavoriteEntry>, AppError> {
     state.history.remove_favorite(&url)
+}
+
+/// 扫描本地文件夹里的网址（资源管理器右键菜单用）。
+#[tauri::command]
+pub async fn scan_folder_urls(path: String) -> Result<crate::core::folder::FolderScan, AppError> {
+    let folder = std::path::PathBuf::from(path);
+    if !folder.is_dir() {
+        return Err(AppError::new("not_found", "这个文件夹不存在或已被移动。"));
+    }
+    let scan = tokio::task::spawn_blocking(move || crate::core::folder::scan_folder(&folder))
+        .await
+        .map_err(|error| AppError::internal(format!("扫描文件夹失败: {error}")))?;
+    Ok(scan)
 }
 
 /// 读取系统剪贴板里的文字。
