@@ -21,5 +21,8 @@
     "check-version": "python scripts/check_version.py",
     "lint:rust": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
     "lint:commit": "commitlint --from HEAD~1 --to HEAD"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.1"
   }
 }

@@ -323,6 +323,8 @@ textarea,
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
   margin-left: 10px;
 }
 
@@ -346,6 +348,35 @@ textarea,
   background: var(--paper-deep);
   color: var(--ink);
   transform: translateY(-1px);
+}
+
+/* 导航栏右侧的源码入口 */
+.main-nav__github {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  flex: none;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 2px 2px 0 var(--line);
+  transition: transform 0.16s var(--ease), background 0.16s var(--ease),
+    box-shadow 0.16s var(--ease);
+}
+
+.main-nav__github:hover {
+  transform: translate(-1px, -1px);
+  background: var(--honey);
+  box-shadow: 3px 3px 0 var(--line);
+}
+
+.main-nav__github:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--line);
 }
 
 .main-nav__item[aria-current="page"] {
@@ -3805,25 +3836,29 @@ h3 {
 
 .about__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px;
-  margin-top: 14px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  align-items: stretch;
 }
 
 .about__card {
+  display: flex;
+  flex-direction: column;
   background: var(--card);
   border: var(--outline);
   border-radius: var(--radius-lg);
   box-shadow: var(--sticker-shadow);
-  padding: 15px 17px;
+  padding: 16px 18px 18px;
 }
 
 .about__card-head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px dashed var(--line-soft);
   color: var(--ink);
 }
 
@@ -3835,15 +3870,16 @@ h3 {
 }
 
 .about__contact {
+  flex: 1;
   display: flex;
-  gap: 15px;
-  align-items: flex-start;
+  gap: 16px;
+  align-items: center;
 }
 
 .about__qr {
   flex: none;
-  width: 138px;
-  height: 138px;
+  width: 146px;
+  height: 146px;
   display: grid;
   place-items: center;
   padding: 6px;
@@ -3889,31 +3925,32 @@ h3 {
 }
 
 .about__contact-text p {
-  margin: 0 0 6px;
+  margin: 0 0 9px;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.72;
 }
 
 .about__contact-hint {
   color: var(--ink-soft);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .about__contact-hint--muted {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .about__list {
-  margin: 0 0 10px;
+  flex: 1;
+  margin: 0 0 2px;
   padding-left: 17px;
-  font-size: 12.5px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.72;
   color: var(--ink-soft);
 }
 
 .about__list li {
-  margin-bottom: 6px;
+  margin-bottom: 9px;
 }
 
 .about__list li::marker {
@@ -3938,6 +3975,14 @@ h3 {
 
 .about__foot-dot {
   margin: 0 6px;
+}
+
+.about__credits {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted);
 }
 
 .about__foot-link {

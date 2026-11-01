@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { InfoIcon, PawIcon, SlidersIcon } from "../shared/components/Icons";
+import { GithubIcon, InfoIcon, PawIcon, SlidersIcon } from "../shared/components/Icons";
 import { t } from "../shared/i18n";
+import { REPO_URL } from "../shared/version";
 
 export type AppView = "crawler" | "settings" | "about";
 
@@ -91,6 +92,19 @@ export function Masthead({ view, onNavigate }: MastheadProps) {
             <InfoIcon size={15} />
             {t("关于", "About")}
           </button>
+
+          {REPO_URL && (
+            <a
+              className="main-nav__github"
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              title={t("在 GitHub 上查看源码", "View source on GitHub")}
+              aria-label={t("在 GitHub 上查看源码", "View source on GitHub")}
+            >
+              <GithubIcon size={17} />
+            </a>
+          )}
         </nav>
       </div>
     </motion.header>

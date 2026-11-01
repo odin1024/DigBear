@@ -235,6 +235,23 @@ pub fn maybe_spawn(handle: AppHandle) {
                 eprintln!("[digbear][test] measure: 主窗口不存在");
                 return;
             };
+            // 先切到要测的页面（点顶部导航的按钮）。
+            if let Ok(view) = std::env::var("DIGBEAR_TEST_VIEW") {
+                let label = if view == "about" { "关于" } else { "设置" };
+                let js = format!(
+                    r#"(() => {{
+                      const buttons = Array.from(document.querySelectorAll('.main-nav__item'));
+                      const hit = buttons.find((b) => (b.textContent || '').includes('{}'))
+                        || buttons.find((b) => (b.textContent || '').toLowerCase().includes('{}'));
+                      if (hit) hit.click();
+                      return !!hit;
+                    }})()"#,
+                    label,
+                    if view == "about" { "about" } else { "settings" }
+                );
+                let _ = win.eval(js);
+                tokio::time::sleep(std::time::Duration::from_millis(900)).await;
+            }
             let js = r#"JSON.stringify({
               viewport: [window.innerWidth, window.innerHeight],
               dpr: window.devicePixelRatio,
@@ -244,13 +261,16 @@ pub fn maybe_spawn(handle: AppHandle) {
               docScroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight],
               bodyScroll: [document.body.scrollWidth, document.body.scrollHeight],
               boxes: Array.from(document.querySelectorAll(
-                ".rb-app,.app-main,.view-slot,.crawler-view,.home-page,.shell,.hero,.hero__copy,.hero__mascot,.hero__mascot-stage,.home-search,.search-pill,.masthead__inner"
+                ".rb-app,.app-main,.view-slot,.crawler-view,.home-page,.shell,.hero,.hero__copy,.hero__mascot,.hero__mascot-stage,.home-search,.search-pill,.masthead__inner,.about,.about__hero,.about__grid,.about__card,.about__foot,.main-nav,.main-nav__github"
               )).map(function (el) {
                 var r = el.getBoundingClientRect();
                 return {
                   sel: el.className.split(" ").slice(0,2).join("."),
                   l: Math.round(r.left), r: Math.round(r.right),
-                  w: Math.round(r.width), sw: el.scrollWidth,
+                  t: Math.round(r.top), b: Math.round(r.bottom),
+                  w: Math.round(r.width), h: Math.round(r.height),
+                  sw: el.scrollWidth, sh: el.scrollHeight,
+                  ch: el.clientHeight,
                 };
               })
             })"#;

@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { Button } from "antd";
 import { motion } from "framer-motion";
-import { api } from "../../shared/api";
 import { t } from "../../shared/i18n";
-import { APP_VERSION, REPO_URL } from "../../shared/version";
-import { ExternalIcon, InfoIcon, LockIcon, SparkIcon } from "../../shared/components/Icons";
+import { APP_VERSION } from "../../shared/version";
+import { InfoIcon, LockIcon, SparkIcon } from "../../shared/components/Icons";
 
 const QR_SRC = `${import.meta.env.BASE_URL}assets/author-qr.png`;
 const LOGO_SRC = `${import.meta.env.BASE_URL}assets/bear-logo.webp`;
@@ -21,11 +19,6 @@ interface AboutViewProps {
  */
 export function AboutView({ onOpenSettings }: AboutViewProps) {
   const [qrFailed, setQrFailed] = useState(false);
-
-  const openRepo = () => {
-    if (!REPO_URL) return;
-    void api.openUrl(REPO_URL);
-  };
 
   return (
     <motion.div
@@ -84,14 +77,14 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
               </p>
               <p className="about__contact-hint">
                 {t(
-                  "微信扫一扫关注公众号，直接给作者留言，反馈会更快看到。",
+                  "扫一扫关注公众号，直接给作者留言，反馈会更快看到。",
                   "Scan the code to follow the official account and leave a message — replies come faster there.",
                 )}
               </p>
               <p className="about__contact-hint about__contact-hint--muted">
                 {t(
-                  "也可以在设置里登录站点后复现问题，附上网址会更容易定位。",
-                  "You can also sign in on the target site via Settings and include the URL when reporting.",
+                  "带上网址复现问题，会更容易定位。",
+                  "Include the URL when reporting — it makes the bug much easier to pin down.",
                 )}
               </p>
             </div>
@@ -106,8 +99,8 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
           <ul className="about__list">
             <li>
               {t(
-                "Windows 版掘掘熊，参考开源项目 Crawl Bear 的思路重新实现。",
-                "The Windows edition of DigBear, inspired by the open-source Crawl Bear project.",
+                "参考开源项目 Crawl Bear 的思路，重新实现的 Windows 版。",
+                "A Windows remake inspired by the open-source Crawl Bear project.",
               )}
             </li>
             <li>
@@ -123,13 +116,6 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
               )}
             </li>
           </ul>
-          {REPO_URL ? (
-            <Button size="small" icon={<ExternalIcon size={14} />} onClick={openRepo}>
-              {t("查看源代码", "View source code")}
-            </Button>
-          ) : (
-            <p className="about__pending">{t("开源仓库地址待公布", "Repository URL coming soon")}</p>
-          )}
         </article>
 
         <article className="about__card">
@@ -152,8 +138,8 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
             </li>
             <li>
               {t(
-                "鼓励用于学习与个人素材整理，不提倡任何不当用途。",
-                "Encouraged for learning and organizing your own media; misuse is discouraged.",
+                "鼓励用于学习与个人素材整理。",
+                "Encouraged for learning and organizing your own media.",
               )}
             </li>
           </ul>
@@ -171,6 +157,13 @@ export function AboutView({ onOpenSettings }: AboutViewProps) {
           {t("去设置登录站点", "Open Settings")}
         </button>
       </footer>
+
+      <p className="about__credits">
+        {t(
+          "本项目移植自开源项目 Crawl Bear（MIT 许可），感谢原作者 xw-meow 与所有贡献者。",
+          "Ported from the open-source Crawl Bear project (MIT). Thanks to xw-meow and all contributors.",
+        )}
+      </p>
     </motion.div>
   );
 }
