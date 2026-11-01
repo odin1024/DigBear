@@ -79,6 +79,9 @@ Write-Step "编译并打包（$Bundles）"
 Push-Location $desktopCopy
 try {
     node $cli build --bundles $Bundles
+    if ($LASTEXITCODE -ne 0) {
+        throw "tauri build 失败（退出码 $LASTEXITCODE）。上面的日志里有具体原因。"
+    }
 } finally {
     Pop-Location
 }
