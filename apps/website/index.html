@@ -12,17 +12,41 @@
       content="掘掘熊 DigBear 是一个 Windows 上的开源网页媒体翻找工具。粘贴一个网址，图片、视频、音乐、字体一次全部找出来，挑完批量存到本地。只读、本机、不上传。"
     />
     <meta name="keywords" content="掘掘熊,DigBear,网页下载器,图片下载,视频下载,音乐下载,字体下载,Windows 开源工具" />
+
+    <!--
+      分享卡片（微信 / 微博 / Twitter 等）。
+      两个坑：
+      1. 缩略图必须是 PNG/JPG —— WebP 普遍不被识别，卡片就会没有图。
+      2. og:image 要写绝对 URL，且用站点自己的域名，别用 raw.githubusercontent.com
+         （国内访问不稳定，抓取方经常拿不到）。
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="掘掘熊 DigBear" />
     <meta property="og:title" content="掘掘熊 DigBear — 把网页里的宝贝收进采集袋" />
     <meta
       property="og:description"
       content="粘贴一个网址，图片、视频、音乐、字体一次全找出来，挑完批量存到本地。Windows 开源免费，数据只留在你的电脑上。"
     />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://raw.githubusercontent.com/odin1024/DigBear/main/apps/website/public/assets/og-cover.webp" />
-    <meta property="og:locale" content="zh_CN" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:url" content="https://odin1024.github.io/DigBear/" />
+    <meta property="og:image" content="https://odin1024.github.io/DigBear/assets/og-cover.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="掘掘熊 DigBear —— 把网页里的宝贝收进采集袋" />
+    <meta property="og:image:secure_url" content="https://odin1024.github.io/DigBear/assets/og-cover.png" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="掘掘熊 DigBear — 把网页里的宝贝收进采集袋" />
+    <meta
+      name="twitter:description"
+      content="粘贴一个网址，图片、视频、音乐、字体一次全找出来，挑完批量存到本地。"
+    />
+    <meta name="twitter:image" content="https://odin1024.github.io/DigBear/assets/og-cover.png" />
+
+    <meta property="weibo:article:title" content="掘掘熊 DigBear — 把网页里的宝贝收进采集袋" />
+    <meta property="weibo:image" content="https://odin1024.github.io/DigBear/assets/og-cover-square.png" />
+    <meta property="weibo:link" content="https://odin1024.github.io/DigBear/" />
   </head>
   <body>
     <div id="root"></div>

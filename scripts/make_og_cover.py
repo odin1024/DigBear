@@ -1,13 +1,22 @@
 # -*- coding: utf-8 -*-
-"""生成社交分享封面 og-cover.webp（1200x630）。"""
+"""生成社交分享封面。
+
+产出两种尺寸：
+- og-cover.png   1200x630，微信 / 微博 / Twitter 的大图卡片
+- og-cover-square.png 200x200，部分平台的小方图
+
+**必须是 PNG**：WebP 在微信、微博等平台普遍不被识别，分享卡片会没有缩略图。
+
+用法：python scripts/make_og_cover.py
+"""
 import os, sys
 from PIL import Image, ImageDraw, ImageFont
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BRAND = os.path.join(ROOT, "apps", "website", "public", "assets", "brand")
+OUT = os.path.join(ROOT, "apps", "website", "public", "assets")
 
-W, H = 1200, 630
 PAPER = (250, 245, 236)
 INK = (46, 36, 64)
 INK_SOFT = (88, 74, 109)
@@ -24,39 +33,50 @@ def font(size, kind="display"):
         return ImageFont.load_default()
 
 
-canvas = Image.new("RGBA", (W, H), PAPER + (255,))
-draw = ImageDraw.Draw(canvas)
-draw.ellipse([W - 420, -260, W + 180, 340], fill=(247, 240, 228, 255))
+def draw_cover(w, h):
+    canvas = Image.new("RGBA", (w, h), PAPER + (255,))
+    draw = ImageDraw.Draw(canvas)
+    draw.ellipse([w - int(w * 0.42), -int(h * 0.46), w + int(w * 0.2), int(h * 0.54)],
+                 fill=(247, 240, 228, 255))
 
-logo_path = os.path.join(BRAND, "bear-logo.webp")
-if os.path.exists(logo_path):
-    logo = Image.open(logo_path).convert("RGBA").resize((108, 108), Image.LANCZOS)
-    mask = Image.new("L", logo.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, 107, 107], radius=30, fill=255)
-    canvas.paste(logo, (76, 72), mask)
+    logo_path = os.path.join(BRAND, "bear-logo.webp")
+    if os.path.exists(logo_path):
+        logo = Image.open(logo_path).convert("RGBA").resize((int(h * 0.24), int(h * 0.24)), Image.LANCZOS)
+        mask = Image.new("L", logo.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle([0, 0, logo.width - 1, logo.height - 1],
+                                               radius=int(h * 0.07), fill=255)
+        canvas.paste(logo, (int(w * 0.06), int(h * 0.1)), mask)
 
-mascot_path = os.path.join(BRAND, "bear-happy.webp")
-if os.path.exists(mascot_path):
-    m = Image.open(mascot_path).convert("RGBA")
-    scale = 470 / m.height
-    m = m.resize((int(m.width * scale), 470), Image.LANCZOS)
-    canvas.paste(m, (W - m.width - 70, 120), m)
+    mascot_path = os.path.join(BRAND, "bear-happy.webp")
+    if os.path.exists(mascot_path):
+        m = Image.open(mascot_path).convert("RGBA")
+        scale = (h * 0.62) / m.height
+        m = m.resize((int(m.width * scale), int(h * 0.62)), Image.LANCZOS)
+        canvas.paste(m, (w - m.width - int(w * 0.05), int(h * 0.28)), m)
 
-draw.text((206, 82), "掘掘熊", font=font(68, "display"), fill=INK + (255,))
-draw.text((410, 112), "DigBear", font=font(34, "bold"), fill=MUTED + (255,))
-draw.text((80, 240), "把网页里的宝贝，", font=font(62, "display"), fill=INK + (255,))
-draw.text((80, 318), "收进采集袋。", font=font(62, "display"), fill=INK + (255,))
-draw.text(
-    (84, 420),
-    "图片 · 视频 · 音乐 · 字体，一个网址全部找出来",
-    font=font(26, "body"), fill=INK_SOFT + (255,),
-)
-draw.text(
-    (84, 522),
-    "Windows 开源免费 · 只读本机 · 不上传",
-    font=font(22, "body"), fill=MUTED + (255,),
-)
+    draw.text((int(w * 0.16), int(h * 0.08)), "掘掘熊", font=font(int(h * 0.17), "display"), fill=INK + (255,))
+    draw.text((int(w * 0.34), int(h * 0.13)), "DigBear", font=font(int(h * 0.08), "bold"), fill=MUTED + (255,))
+    draw.text((int(w * 0.06), int(h * 0.38)), "把网页里的宝贝，", font=font(int(h * 0.15), "display"), fill=INK + (255,))
+    draw.text((int(w * 0.06), int(h * 0.56)), "收进采集袋。", font=font(int(h * 0.15), "display"), fill=INK + (255,))
+    draw.text((int(w * 0.06), int(h * 0.78)), "图片 · 视频 · 音乐 · 字体，一个网址全部找出来",
+               font=font(int(h * 0.06), "body"), fill=INK_SOFT + (255,))
+    draw.text((int(w * 0.06), int(h * 0.88)), "Windows 开源免费 · 只读本机 · 不上传",
+               font=font(int(h * 0.05), "body"), fill=MUTED + (255,))
+    return canvas
 
-out = os.path.join(ROOT, "apps", "website", "public", "assets", "og-cover.webp")
-canvas.convert("RGB").save(out, "WEBP", quality=92, method=6)
-print("已生成", out, canvas.size, round(os.path.getsize(out) / 1024), "KB")
+
+def main():
+    big = draw_cover(1200, 630)
+    big.convert("RGB").save(os.path.join(OUT, "og-cover.png"), "PNG", optimize=True)
+
+    # 方形小图：部分平台的小卡片只认这个尺寸
+    square = draw_cover(400, 400)
+    square.convert("RGB").save(os.path.join(OUT, "og-cover-square.png"), "PNG", optimize=True)
+
+    for name in ["og-cover.png", "og-cover-square.png"]:
+        path = os.path.join(OUT, name)
+        print("已生成", path, round(os.path.getsize(path) / 1024), "KB")
+
+
+if __name__ == "__main__":
+    main()
