@@ -33,7 +33,7 @@ def font(size, kind="display"):
         return ImageFont.load_default()
 
 
-def draw_cover(w, h):
+def draw_cover(w, h, square=False):
     canvas = Image.new("RGBA", (w, h), PAPER + (255,))
     draw = ImageDraw.Draw(canvas)
     draw.ellipse([w - int(w * 0.42), -int(h * 0.46), w + int(w * 0.2), int(h * 0.54)],
@@ -54,6 +54,15 @@ def draw_cover(w, h):
         m = m.resize((int(m.width * scale), int(h * 0.62)), Image.LANCZOS)
         canvas.paste(m, (w - m.width - int(w * 0.05), int(h * 0.28)), m)
 
+    if square:
+        # 方形版单独排：长句会挤在一起，只留标题和一句短的
+        draw.text((int(w * 0.08), int(h * 0.14)), "掘掘熊", font=font(int(h * 0.13), "display"), fill=INK + (255,))
+        draw.text((int(w * 0.08), int(h * 0.3)), "DigBear", font=font(int(h * 0.075), "bold"), fill=MUTED + (255,))
+        draw.text((int(w * 0.08), int(h * 0.56)), "把网页里的宝贝，", font=font(int(h * 0.1), "display"), fill=INK + (255,))
+        draw.text((int(w * 0.08), int(h * 0.68)), "收进采集袋。", font=font(int(h * 0.1), "display"), fill=INK + (255,))
+        draw.text((int(w * 0.08), int(h * 0.85)), "Windows 开源免费", font=font(int(h * 0.055), "body"), fill=MUTED + (255,))
+        return canvas
+
     draw.text((int(w * 0.16), int(h * 0.08)), "掘掘熊", font=font(int(h * 0.17), "display"), fill=INK + (255,))
     draw.text((int(w * 0.34), int(h * 0.13)), "DigBear", font=font(int(h * 0.08), "bold"), fill=MUTED + (255,))
     draw.text((int(w * 0.06), int(h * 0.38)), "把网页里的宝贝，", font=font(int(h * 0.15), "display"), fill=INK + (255,))
@@ -70,7 +79,7 @@ def main():
     big.convert("RGB").save(os.path.join(OUT, "og-cover.png"), "PNG", optimize=True)
 
     # 方形小图：部分平台的小卡片只认这个尺寸
-    square = draw_cover(400, 400)
+    square = draw_cover(400, 400, square=True)
     square.convert("RGB").save(os.path.join(OUT, "og-cover-square.png"), "PNG", optimize=True)
 
     for name in ["og-cover.png", "og-cover-square.png"]:
