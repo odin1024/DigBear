@@ -18,7 +18,10 @@ pub fn extract_first_url(input: &str) -> Option<String> {
 
 pub fn trim_url(raw: &str) -> &str {
     raw.trim_end_matches(|c: char| {
-        matches!(c, ')' | ']' | '}' | ',' | '.' | ';' | '，' | '。' | '；' | '、' | '"' | '\'')
+        matches!(
+            c,
+            ')' | ']' | '}' | ',' | '.' | ';' | '，' | '。' | '；' | '、' | '"' | '\''
+        )
     })
 }
 
@@ -35,7 +38,10 @@ pub fn normalize_page_url(input: &str) -> Result<Url, AppError> {
     if host.is_empty() {
         return Err(AppError::invalid_url("网址缺少域名。"));
     }
-    let is_ip = matches!(url.host(), Some(url::Host::Ipv4(_)) | Some(url::Host::Ipv6(_)));
+    let is_ip = matches!(
+        url.host(),
+        Some(url::Host::Ipv4(_)) | Some(url::Host::Ipv6(_))
+    );
     if !host.contains('.') && host != "localhost" && !is_ip {
         return Err(AppError::invalid_url("网址缺少域名。"));
     }
@@ -59,7 +65,11 @@ pub fn site_folder(host: &str) -> String {
             }
         })
         .collect();
-    if cleaned.is_empty() { "site".to_string() } else { cleaned }
+    if cleaned.is_empty() {
+        "site".to_string()
+    } else {
+        cleaned
+    }
 }
 
 #[cfg(test)]

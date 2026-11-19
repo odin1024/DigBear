@@ -21,14 +21,18 @@ use tauri::{AppHandle, Manager};
 pub fn maybe_spawn(handle: AppHandle) {
     let extension_handle = handle.clone();
     if let Ok(login_url) = std::env::var("DIGBEAR_TEST_LOGIN_URL")
-            .or_else(|_| std::env::var("CRAWLBear_TEST_LOGIN_URL")) {
+        .or_else(|_| std::env::var("CRAWLBear_TEST_LOGIN_URL"))
+    {
         let handle = handle.clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             match session::open_site_login(&handle, &login_url) {
                 Ok(message) => eprintln!("[digbear][test] login window: {message}"),
                 Err(error) => {
-                    eprintln!("[digbear][test] login error: {} {}", error.code, error.message);
+                    eprintln!(
+                        "[digbear][test] login error: {} {}",
+                        error.code, error.message
+                    );
                     return;
                 }
             }
@@ -53,8 +57,9 @@ pub fn maybe_spawn(handle: AppHandle) {
         });
     }
 
-    if let Ok(test_url) = std::env::var("DIGBEAR_TEST_URL")
-            .or_else(|_| std::env::var("CRAWLBear_TEST_URL")) {
+    if let Ok(test_url) =
+        std::env::var("DIGBEAR_TEST_URL").or_else(|_| std::env::var("CRAWLBear_TEST_URL"))
+    {
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             let settings = handle.state::<AppState>().settings();
@@ -100,7 +105,11 @@ pub fn maybe_spawn(handle: AppHandle) {
             }
             let autoexit = std::env::var("DIGBEAR_TEST_AUTOEXIT").ok().as_deref() == Some("1");
             if std::env::var("DIGBEAR_TEST_DOWNLOAD")
-            .or_else(|_| std::env::var("CRAWLBear_TEST_DOWNLOAD")).ok().as_deref() != Some("1") {
+                .or_else(|_| std::env::var("CRAWLBear_TEST_DOWNLOAD"))
+                .ok()
+                .as_deref()
+                != Some("1")
+            {
                 if autoexit {
                     handle.exit(0);
                 }
@@ -161,7 +170,8 @@ pub fn maybe_spawn(handle: AppHandle) {
     }
 
     if let Ok(extension_id) = std::env::var("DIGBEAR_TEST_EXTENSION")
-            .or_else(|_| std::env::var("CRAWLBear_TEST_EXTENSION")) {
+        .or_else(|_| std::env::var("CRAWLBear_TEST_EXTENSION"))
+    {
         let handle = extension_handle.clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
@@ -179,11 +189,13 @@ pub fn maybe_spawn(handle: AppHandle) {
     }
 
     if let Ok(video_url) = std::env::var("DIGBEAR_TEST_PAGE_VIDEO")
-            .or_else(|_| std::env::var("CRAWLBear_TEST_PAGE_VIDEO")) {
+        .or_else(|_| std::env::var("CRAWLBear_TEST_PAGE_VIDEO"))
+    {
         let handle = extension_handle.clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-            let Some(resolved) = crate::downloader::resolvers::resolve(&handle, &video_url).await else {
+            let Some(resolved) = crate::downloader::resolvers::resolve(&handle, &video_url).await
+            else {
                 eprintln!("[digbear][test] page video: no resolver");
                 return;
             };
@@ -202,9 +214,13 @@ pub fn maybe_spawn(handle: AppHandle) {
                     }
                     let target = std::path::Path::new("/tmp/dig-bear-page-video.mp4");
                     let _ = tokio::fs::remove_file(target).await;
-                    match crate::downloader::resolvers::download(&handle, &media, target, |_, _| {}).await {
+                    match crate::downloader::resolvers::download(&handle, &media, target, |_, _| {})
+                        .await
+                    {
                         Ok(()) => eprintln!("[digbear][test] page video ok resolver={id}"),
-                        Err(error) => eprintln!("[digbear][test] page video download error: {error}"),
+                        Err(error) => {
+                            eprintln!("[digbear][test] page video download error: {error}")
+                        }
                     }
                 }
                 Err(error) => eprintln!("[digbear][test] page video resolve error: {error}"),
@@ -292,7 +308,12 @@ pub fn maybe_spawn(handle: AppHandle) {
             })"#;
             let win2 = win.clone();
             let (tx, rx) = std::sync::mpsc::channel::<String>();
-            if win2.eval_with_callback(js.to_string(), move |v| { let _ = tx.send(v); }).is_err() {
+            if win2
+                .eval_with_callback(js.to_string(), move |v| {
+                    let _ = tx.send(v);
+                })
+                .is_err()
+            {
                 eprintln!("[digbear][test] measure: eval 失败");
                 return;
             }

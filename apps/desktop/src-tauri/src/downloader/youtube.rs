@@ -8,9 +8,7 @@
 //! No yt-dlp (or any other external extractor) is involved. Requests honor the
 //! macOS system HTTP proxy, since YouTube is often unreachable directly.
 
-use crate::downloader::resolvers::{
-    PageVideoResolver, ResolvedMedia, StreamAsset,
-};
+use crate::downloader::resolvers::{PageVideoResolver, ResolvedMedia, StreamAsset};
 use async_trait::async_trait;
 use regex::Regex;
 use serde_json::Value;
@@ -19,8 +17,7 @@ use std::time::Duration;
 const WATCH_BASE: &str = "https://www.youtube.com/watch?v=";
 const VISIONOS_UA: &str =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15";
-const ANDROID_UA: &str =
-    "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip";
+const ANDROID_UA: &str = "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip";
 const IOS_UA: &str =
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 
@@ -47,17 +44,39 @@ enum ClientForm {
 /// 按顺序尝试的客户端列表。
 fn clients() -> Vec<ClientSpec> {
     vec![
-        ClientSpec { name: "VISIONOS", version: "1.02", user_agent: VISIONOS_UA, form: ClientForm::Desktop },
-        ClientSpec { name: "ANDROID", version: "19.09.37", user_agent: ANDROID_UA, form: ClientForm::Android },
-        ClientSpec { name: "IOS", version: "19.29.1", user_agent: IOS_UA, form: ClientForm::Ios },
+        ClientSpec {
+            name: "VISIONOS",
+            version: "1.02",
+            user_agent: VISIONOS_UA,
+            form: ClientForm::Desktop,
+        },
+        ClientSpec {
+            name: "ANDROID",
+            version: "19.09.37",
+            user_agent: ANDROID_UA,
+            form: ClientForm::Android,
+        },
+        ClientSpec {
+            name: "IOS",
+            version: "19.29.1",
+            user_agent: IOS_UA,
+            form: ClientForm::Ios,
+        },
     ]
 }
 
 fn youtube_id(raw: &str) -> Option<String> {
     let url = url::Url::parse(raw).ok()?;
-    let host = url.host_str()?.trim_start_matches("www.").to_ascii_lowercase();
+    let host = url
+        .host_str()?
+        .trim_start_matches("www.")
+        .to_ascii_lowercase();
     if host == "youtu.be" {
-        return url.path_segments()?.next().filter(|s| !s.is_empty()).map(str::to_string);
+        return url
+            .path_segments()?
+            .next()
+            .filter(|s| !s.is_empty())
+            .map(str::to_string);
     }
     if host != "youtube.com" && !host.ends_with(".youtube.com") && host != "youtube-nocookie.com" {
         return None;
@@ -72,7 +91,10 @@ fn youtube_id(raw: &str) -> Option<String> {
     let mut segments = url.path_segments()?;
     let first = segments.next()?;
     if matches!(first, "embed" | "shorts" | "v") {
-        return segments.next().filter(|s| !s.is_empty()).map(str::to_string);
+        return segments
+            .next()
+            .filter(|s| !s.is_empty())
+            .map(str::to_string);
     }
     None
 }
@@ -89,26 +111,18 @@ fn with_cookie(request: reqwest::RequestBuilder, cookie: &str) -> reqwest::Reque
     request.header(reqwest::header::COOKIE, cookie)
 }
 
-pub struct YoutubeResolver;
-
-#[async_trait]
-impl PageVideoResolver for YoutubeResolver {
-    fn id(&self) -> &'static str {
-        "youtube-visionos"
-    }
-
-    fn supports(&self, url: &str) -> bool {
-        youtube_id(url).is_some()
-    }
-
-    async fn resolve(&self, app: &tauri::AppHandle, url: &str) -> Result<ResolvedMedia, String> {
-        let video_id = youtube_id(url)
-            .ok_or_else(|| "无法识别这个 YouTube 链接。".to_string())?;
-        // Reuse the cookie from an in-app YouTube sign-in when there is one:
-        // it is what gets us past the "confirm you're not a bot" check.
-        let cookie = crate::session::cookie_header_for(app, url);
+impl YoutubeResolver {
+    /// 解析 YouTube 页面，不依赖登录态。
+    ///
+    /// 拆出来是为了让单元测试能直接调用 —— 完整版要 `AppHandle` 才能拿到 Cookie。
+    pub async fn resolve_with_cookie(
+        &self,
+        url: &str,
+        cookie: &str,
+    ) -> Result<ResolvedMedia, String> {
+        let video_id = youtube_id(url).ok_or_else(|| "无法识别这个 YouTube 链接。".to_string())?;
         let client = http_client()?;
-        let formats = fetch_formats(&client, &video_id, &cookie).await?;
+        let formats = fetch_formats(&client, &video_id, cookie).await?;
         Ok(ResolvedMedia {
             page_url: format!("{WATCH_BASE}{video_id}"),
             video: StreamAsset {
@@ -124,8 +138,32 @@ impl PageVideoResolver for YoutubeResolver {
     }
 }
 
+pub struct YoutubeResolver;
+
+#[async_trait]
+impl PageVideoResolver for YoutubeResolver {
+    fn id(&self) -> &'static str {
+        "youtube-visionos"
+    }
+
+    fn supports(&self, url: &str) -> bool {
+        youtube_id(url).is_some()
+    }
+
+    async fn resolve(&self, app: &tauri::AppHandle, url: &str) -> Result<ResolvedMedia, String> {
+        // Reuse the cookie from an in-app YouTube sign-in when there is one:
+        // it is what gets us past the "confirm you're not a bot" check.
+        let cookie = crate::session::cookie_header_for(app, url);
+        self.resolve_with_cookie(url, &cookie).await
+    }
+}
+
 fn capture<'a>(pattern: &str, text: &'a str) -> Option<&'a str> {
-    Regex::new(pattern).ok()?.captures(text)?.get(1).map(|m| m.as_str())
+    Regex::new(pattern)
+        .ok()?
+        .captures(text)?
+        .get(1)
+        .map(|m| m.as_str())
 }
 
 struct Formats {
@@ -194,12 +232,12 @@ async fn fetch_formats(
             .header("Accept-Language", "en-US,en;q=0.9"),
         cookie,
     )
-        .send()
-        .await
-        .map_err(|error| format!("无法访问 YouTube: {error}"))?
-        .text()
-        .await
-        .map_err(|error| format!("读取 YouTube 页面失败: {error}"))?;
+    .send()
+    .await
+    .map_err(|error| format!("无法访问 YouTube: {error}"))?
+    .text()
+    .await
+    .map_err(|error| format!("读取 YouTube 页面失败: {error}"))?;
 
     let api_key = capture(r#""INNERTUBE_API_KEY":"([^"]+)""#, &page)
         .ok_or_else(|| "YouTube 页面结构变化：没有找到 API key。".to_string())?;
@@ -222,9 +260,9 @@ async fn fetch_formats(
                 .header("Accept-Language", "en-US,en;q=0.9"),
             cookie,
         )
-            .json(&body)
-            .send()
-            .await
+        .json(&body)
+        .send()
+        .await
         {
             Ok(response) => response,
             Err(error) => {
@@ -306,9 +344,7 @@ fn pick_progressive(formats: &[Value]) -> Option<(String, Option<u64>)> {
                 && format["audioQuality"].is_string()
         })
         .max_by_key(|format| format["height"].as_u64().unwrap_or(0))
-        .and_then(|format| {
-            Some((format["url"].as_str()?.to_string(), content_size(format)))
-        })
+        .and_then(|format| Some((format["url"].as_str()?.to_string(), content_size(format))))
 }
 
 fn pick_video(formats: &[Value]) -> Option<(String, Option<u64>)> {
@@ -333,9 +369,9 @@ fn pick_video(formats: &[Value]) -> Option<(String, Option<u64>)> {
         let height = format["height"].as_u64().unwrap_or(0).min(1080);
         (h264, height, format["bitrate"].as_u64().unwrap_or(0))
     });
-    candidates.last().and_then(|format| {
-        Some((format["url"].as_str()?.to_string(), content_size(format)))
-    })
+    candidates
+        .last()
+        .and_then(|format| Some((format["url"].as_str()?.to_string(), content_size(format))))
 }
 
 fn pick_audio(formats: &[Value]) -> Option<(String, Option<u64>)> {
@@ -349,11 +385,8 @@ fn pick_audio(formats: &[Value]) -> Option<(String, Option<u64>)> {
                     .unwrap_or(false)
         })
         .max_by_key(|format| format["bitrate"].as_u64().unwrap_or(0))
-        .and_then(|format| {
-            Some((format["url"].as_str()?.to_string(), content_size(format)))
-        })
+        .and_then(|format| Some((format["url"].as_str()?.to_string(), content_size(format))))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -361,9 +394,15 @@ mod tests {
 
     #[test]
     fn parses_youtube_ids() {
-        assert_eq!(youtube_id("https://www.youtube.com/watch?v=abc123"), Some("abc123".into()));
+        assert_eq!(
+            youtube_id("https://www.youtube.com/watch?v=abc123"),
+            Some("abc123".into())
+        );
         assert_eq!(youtube_id("https://youtu.be/abc123"), Some("abc123".into()));
-        assert_eq!(youtube_id("https://www.youtube.com/shorts/abc123"), Some("abc123".into()));
+        assert_eq!(
+            youtube_id("https://www.youtube.com/shorts/abc123"),
+            Some("abc123".into())
+        );
         assert_eq!(youtube_id("https://vimeo.com/123"), None);
     }
 
@@ -372,7 +411,7 @@ mod tests {
     async fn extracts_the_reported_video() {
         let resolver = YoutubeResolver;
         let media = resolver
-            .resolve("https://www.youtube.com/watch?v=ihy4w9UJFu0")
+            .resolve_with_cookie("https://www.youtube.com/watch?v=ihy4w9UJFu0", "")
             .await
             .expect("resolve");
         assert!(media.video.url.starts_with("https://"));

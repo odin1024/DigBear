@@ -29,7 +29,9 @@ pub fn find_binary(name: &str, fallbacks: &[&str]) -> Option<PathBuf> {
 }
 
 fn is_executable(path: &Path) -> bool {
-    std::fs::metadata(path).map(|meta| meta.is_file()).unwrap_or(false)
+    std::fs::metadata(path)
+        .map(|meta| meta.is_file())
+        .unwrap_or(false)
 }
 
 /// `<target>.part` - the temporary file used while curl is writing.
@@ -105,7 +107,9 @@ pub fn mime_of(content_type: &str) -> String {
 /// Hosts whose "video" URLs are player pages, not direct media files.
 /// Page videos (YouTube) are extracted by the in-app downloader.
 pub fn is_page_video_url(raw: &str) -> bool {
-    let Ok(url) = Url::parse(raw) else { return false };
+    let Ok(url) = Url::parse(raw) else {
+        return false;
+    };
     let host = url.host_str().unwrap_or("").to_ascii_lowercase();
     let known = [
         "youtube.com",
@@ -333,7 +337,11 @@ fn raw_stem(item: &DownloadItem, url: Option<&Url>) -> String {
                 .filter(|ch| ch.is_ascii_alphanumeric() || *ch == '-' || *ch == '_')
                 .take(64)
                 .collect();
-            if id.is_empty() { "media".to_string() } else { format!("media-{id}") }
+            if id.is_empty() {
+                "media".to_string()
+            } else {
+                format!("media-{id}")
+            }
         });
     strip_known_extension(&raw)
 }
@@ -359,8 +367,10 @@ pub fn validate_response(content_type: &str, prefix: &[u8], is_hls: bool) -> Res
         return Ok(());
     }
     let mime = mime_of(content_type);
-    let auth_error =
-        || "服务器返回的是网页或 JSON，而不是媒体文件（可能需要登录、链接已过期或无访问权限）。".to_string();
+    let auth_error = || {
+        "服务器返回的是网页或 JSON，而不是媒体文件（可能需要登录、链接已过期或无访问权限）。"
+            .to_string()
+    };
 
     if matches!(
         mime.as_str(),
@@ -408,7 +418,10 @@ pub struct PathPlanner {
 
 impl PathPlanner {
     pub fn new(folder: PathBuf) -> Self {
-        Self { folder, reserved: Mutex::new(HashSet::new()) }
+        Self {
+            folder,
+            reserved: Mutex::new(HashSet::new()),
+        }
     }
 
     /// Reserve a unique target path for the first attempt.
@@ -438,7 +451,11 @@ impl PathPlanner {
         let stem = naming::fit_to_budget(stem, ext, budget);
         let stem = stem.as_str();
         for attempt in 0..1000usize {
-            let base = if attempt == 0 { stem.to_string() } else { format!("{stem} ({attempt})") };
+            let base = if attempt == 0 {
+                stem.to_string()
+            } else {
+                format!("{stem} ({attempt})")
+            };
             let candidate = naming::unique_path(&self.folder, &base, ext);
             if reserved.insert(candidate.clone()) {
                 return candidate;
@@ -458,7 +475,9 @@ impl PathPlanner {
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, HashSet<PathBuf>> {
-        self.reserved.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.reserved
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
@@ -482,22 +501,42 @@ mod tests {
 
     #[test]
     fn hint_strips_media_extension_and_path_characters() {
-        let item = download_item("a", "https://cdn.test/x/a.png", Some("poster.jpg"), MediaKind::Image);
+        let item = download_item(
+            "a",
+            "https://cdn.test/x/a.png",
+            Some("poster.jpg"),
+            MediaKind::Image,
+        );
         assert_eq!(filename_stem(&item, Some(&parsed(&item.url))), "poster");
         // Path segments in a hint are dropped instead of leaking into the folder.
-        let item = download_item("b", "https://cdn.test/x/a.png", Some("../weird/name.png"), MediaKind::Image);
+        let item = download_item(
+            "b",
+            "https://cdn.test/x/a.png",
+            Some("../weird/name.png"),
+            MediaKind::Image,
+        );
         assert_eq!(filename_stem(&item, Some(&parsed(&item.url))), "name");
     }
 
     #[test]
     fn hint_keeps_unknown_extension_dots() {
-        let item = download_item("a", "https://cdn.test/a.mp4", Some("clip.final"), MediaKind::Video);
+        let item = download_item(
+            "a",
+            "https://cdn.test/a.mp4",
+            Some("clip.final"),
+            MediaKind::Video,
+        );
         assert_eq!(filename_stem(&item, Some(&parsed(&item.url))), "clip.final");
     }
 
     #[test]
     fn url_basename_is_percent_decoded_and_sanitized() {
-        let item = download_item("a", "https://cdn.test/path/%E7%8C%AB%20photo.JPG", None, MediaKind::Image);
+        let item = download_item(
+            "a",
+            "https://cdn.test/path/%E7%8C%AB%20photo.JPG",
+            None,
+            MediaKind::Image,
+        );
         assert_eq!(filename_stem(&item, Some(&parsed(&item.url))), "猫 photo");
     }
 
@@ -505,13 +544,25 @@ mod tests {
     fn content_type_wins_over_url_extension() {
         let url = parsed("https://cdn.test/image.php?id=1");
         assert_eq!(
-            final_extension(Some(&url), None, "image/webp; charset=binary", MediaKind::Image, false),
+            final_extension(
+                Some(&url),
+                None,
+                "image/webp; charset=binary",
+                MediaKind::Image,
+                false
+            ),
             "webp"
         );
         let url = parsed("https://cdn.test/photo.jpg");
-        assert_eq!(final_extension(Some(&url), None, "", MediaKind::Image, false), "jpg");
+        assert_eq!(
+            final_extension(Some(&url), None, "", MediaKind::Image, false),
+            "jpg"
+        );
         let url = parsed("https://cdn.test/no-ext");
-        assert_eq!(final_extension(Some(&url), None, "", MediaKind::Audio, false), "mp3");
+        assert_eq!(
+            final_extension(Some(&url), None, "", MediaKind::Audio, false),
+            "mp3"
+        );
     }
 
     #[test]
@@ -519,7 +570,13 @@ mod tests {
         assert!(is_hls_url("https://cdn.test/master.m3u8?token=1"));
         assert!(is_hls_url("https://cdn.test/manifest.MPD"));
         assert!(!is_hls_url("https://cdn.test/video.mp4"));
-        assert_eq!(planned_extension(Some(&parsed("https://cdn.test/master.m3u8")), MediaKind::Video), "mp4");
+        assert_eq!(
+            planned_extension(
+                Some(&parsed("https://cdn.test/master.m3u8")),
+                MediaKind::Video
+            ),
+            "mp4"
+        );
         assert!(is_hls_content_type("application/vnd.apple.mpegurl"));
     }
 
@@ -527,7 +584,12 @@ mod tests {
     fn html_and_json_responses_are_rejected() {
         assert!(validate_response("text/html; charset=utf-8", b"", false).is_err());
         assert!(validate_response("application/json", b"", false).is_err());
-        assert!(validate_response("application/octet-stream", b"  <!DOCTYPE html><html>", false).is_err());
+        assert!(validate_response(
+            "application/octet-stream",
+            b"  <!DOCTYPE html><html>",
+            false
+        )
+        .is_err());
         assert!(validate_response("", b"{\"error\":\"login required\"}", false).is_err());
         assert!(validate_response("application/octet-stream", b"fake media bytes", false).is_ok());
         assert!(validate_response("", b"\x00\x00\x00\x20ftypisom", false).is_ok());
@@ -552,15 +614,31 @@ mod tests {
         let first = planner.reserve("clip", "mp4");
         let second = planner.reserve("clip", "mp4");
         assert_ne!(first, second);
-        assert_eq!(first.file_name().and_then(|name| name.to_str()), Some("clip.mp4"));
-        assert_eq!(second.file_name().and_then(|name| name.to_str()), Some("clip (1).mp4"));
+        assert_eq!(
+            first.file_name().and_then(|name| name.to_str()),
+            Some("clip.mp4")
+        );
+        assert_eq!(
+            second.file_name().and_then(|name| name.to_str()),
+            Some("clip (1).mp4")
+        );
         let corrected = planner.correct(&first, "clip", "webm");
-        assert_eq!(corrected.file_name().and_then(|name| name.to_str()), Some("clip.webm"));
+        assert_eq!(
+            corrected.file_name().and_then(|name| name.to_str()),
+            Some("clip.webm")
+        );
         // Re-applying the same extension keeps the path instead of renaming again.
         assert_eq!(planner.correct(&corrected, "clip", "webm"), corrected);
-        assert_eq!(part_path(&corrected).file_name().and_then(|name| name.to_str()), Some("clip.webm.part"));
         assert_eq!(
-            hls_part_path(&corrected).file_name().and_then(|name| name.to_str()),
+            part_path(&corrected)
+                .file_name()
+                .and_then(|name| name.to_str()),
+            Some("clip.webm.part")
+        );
+        assert_eq!(
+            hls_part_path(&corrected)
+                .file_name()
+                .and_then(|name| name.to_str()),
             Some("clip.webm.part.mp4")
         );
         let _ = std::fs::remove_dir_all(&folder);
@@ -581,10 +659,7 @@ mod tests {
             render_template("{site}_{kind}_{index}_{name}", &ctx),
             "example.com_image_007_cover"
         );
-        assert_eq!(
-            render_template("{date}-{name}", &ctx),
-            "20261031-cover"
-        );
+        assert_eq!(render_template("{date}-{name}", &ctx), "20261031-cover");
     }
 
     #[test]

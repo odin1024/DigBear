@@ -1,6 +1,6 @@
 pub mod classify;
-pub mod disk;
 pub mod config;
+pub mod disk;
 pub mod error;
 pub mod folder;
 pub mod history;
@@ -8,6 +8,6 @@ pub mod manifest;
 pub mod models;
 pub mod naming;
 pub mod net;
-pub mod url;
 pub mod state;
+pub mod url;
 pub mod webview;

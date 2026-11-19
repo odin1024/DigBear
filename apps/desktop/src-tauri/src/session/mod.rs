@@ -26,7 +26,9 @@ pub fn open_site_login(app: &AppHandle, raw_url: &str) -> Result<String, AppErro
         .build()
         .map_err(|e| AppError::new("session_failed", format!("无法打开登录窗口: {e}")))?;
     let _ = win.set_focus();
-    Ok(format!("已打开 {host} 的登录窗口，完成登录后关闭窗口即可。"))
+    Ok(format!(
+        "已打开 {host} 的登录窗口，完成登录后关闭窗口即可。"
+    ))
 }
 
 pub fn close_site_login(app: &AppHandle) {
@@ -35,18 +37,22 @@ pub fn close_site_login(app: &AppHandle) {
     }
 }
 
-
 /// Whether a cookie should be sent for this URL. We deliberately do not use
 /// `cookies_for_url`: Wry compares `cookie.domain()` with `Url::domain()`, which
 /// returns `None` for IP-literal hosts (e.g. 127.0.0.1), so local fixtures and
 /// LAN sites would otherwise lose their session cookies.
 fn cookie_applies(cookie: &tauri::webview::Cookie<'static>, url: &url::Url) -> bool {
     let host = url.host_str().unwrap_or("");
-    let domain = cookie.domain().unwrap_or("").trim_start_matches('.').to_ascii_lowercase();
+    let domain = cookie
+        .domain()
+        .unwrap_or("")
+        .trim_start_matches('.')
+        .to_ascii_lowercase();
     let host_ok = if domain.is_empty() {
         true
     } else {
-        host.eq_ignore_ascii_case(&domain) || host.to_ascii_lowercase().ends_with(&format!(".{domain}"))
+        host.eq_ignore_ascii_case(&domain)
+            || host.to_ascii_lowercase().ends_with(&format!(".{domain}"))
     };
     if !host_ok {
         return false;
@@ -76,8 +82,12 @@ pub fn all_cookies_for_url(
     let mut out: Vec<tauri::webview::Cookie<'static>> = Vec::new();
     let mut seen = std::collections::HashSet::new();
     for label in ["main", LOGIN_LABEL, "crawl-worker"] {
-        let Some(webview) = app.get_webview_window(label) else { continue };
-        let Ok(cookies) = webview.cookies() else { continue };
+        let Some(webview) = app.get_webview_window(label) else {
+            continue;
+        };
+        let Ok(cookies) = webview.cookies() else {
+            continue;
+        };
         for cookie in cookies {
             if !cookie_applies(&cookie, url) {
                 continue;
@@ -96,7 +106,9 @@ pub fn all_cookies_for_url(
 /// 用于「恢复出厂设置」：让应用回到刚装好时的样子。
 pub fn clear_all_sessions(app: &AppHandle) {
     for label in ["main", LOGIN_LABEL, "crawl-worker"] {
-        let Some(webview) = app.get_webview_window(label) else { continue };
+        let Some(webview) = app.get_webview_window(label) else {
+            continue;
+        };
         if let Ok(cookies) = webview.cookies() {
             for cookie in cookies {
                 let _ = webview.delete_cookie(cookie);
@@ -110,7 +122,11 @@ pub fn get_site_session(app: &AppHandle, raw_url: &str) -> Result<SessionInfo, A
     let url = normalize_page_url(raw_url)?;
     let domain = host_label(&url);
     let cookies = all_cookies_for_url(app, &url);
-    Ok(SessionInfo { url: url.to_string(), domain, cookies: cookies.len() })
+    Ok(SessionInfo {
+        url: url.to_string(),
+        domain,
+        cookies: cookies.len(),
+    })
 }
 
 pub fn clear_site_session(app: &AppHandle, raw_url: &str) -> Result<SessionInfo, AppError> {
@@ -144,4 +160,3 @@ pub fn cookie_header_for(app: &AppHandle, raw_url: &str) -> String {
         .collect::<Vec<_>>()
         .join("; ")
 }
-

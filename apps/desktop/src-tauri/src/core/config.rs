@@ -28,8 +28,8 @@ impl SettingsStore {
     pub fn load(app: &AppHandle) -> Result<Self, AppError> {
         // The upstream macOS build used `CRAWLBear_CONFIG_DIR`; keep it
         // working so an existing profile carries over.
-        let dir = if let Ok(test_dir) = std::env::var("DIGBEAR_CONFIG_DIR")
-            .or_else(|_| std::env::var("CRAWLBear_CONFIG_DIR"))
+        let dir = if let Ok(test_dir) =
+            std::env::var("DIGBEAR_CONFIG_DIR").or_else(|_| std::env::var("CRAWLBear_CONFIG_DIR"))
         {
             std::path::PathBuf::from(test_dir)
         } else {
@@ -61,7 +61,10 @@ impl SettingsStore {
         } else {
             AppSettings::defaults()
         };
-        let store = Self { path, data: RwLock::new(data) };
+        let store = Self {
+            path,
+            data: RwLock::new(data),
+        };
         // Persist defaults on first launch so the user can see/edit the file.
         if !converted_exists(&store.path) {
             let _ = store.persist(&store.get());
@@ -71,7 +74,9 @@ impl SettingsStore {
 
     /// 配置目录：历史记录、收藏都放在这里。
     pub fn dir(&self) -> &std::path::Path {
-        self.path.parent().unwrap_or_else(|| std::path::Path::new("."))
+        self.path
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."))
     }
 
     pub fn get(&self) -> AppSettings {
@@ -96,7 +101,6 @@ impl SettingsStore {
         Ok(())
     }
 }
-
 
 /// 去掉 UTF-8 BOM。
 ///

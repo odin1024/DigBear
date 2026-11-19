@@ -65,11 +65,12 @@ fn windows_system_proxy() -> Option<String> {
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
     use winreg::RegKey;
 
-    const INTERNET_SETTINGS: &str =
-        r"Software\Microsoft\Windows\CurrentVersion\Internet Settings";
+    const INTERNET_SETTINGS: &str = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings";
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let key = hkcu.open_subkey_with_flags(INTERNET_SETTINGS, KEY_READ).ok()?;
+    let key = hkcu
+        .open_subkey_with_flags(INTERNET_SETTINGS, KEY_READ)
+        .ok()?;
 
     let enabled: u32 = match key.get_value("ProxyEnable") {
         Ok(value) => value,

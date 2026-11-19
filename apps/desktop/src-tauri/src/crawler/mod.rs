@@ -1,7 +1,7 @@
 pub mod browser;
-mod twitter;
 pub mod fallback;
 pub mod script;
+mod twitter;
 
 use crate::core::error::AppError;
 use crate::core::models::{
@@ -56,7 +56,9 @@ fn to_resources(page: &RawPage) -> Vec<MediaResource> {
     let mut seen = HashSet::new();
     let mut resources = Vec::new();
     for raw in &page.resources {
-        let Ok(url) = Url::parse(&raw.url) else { continue };
+        let Ok(url) = Url::parse(&raw.url) else {
+            continue;
+        };
         if !matches!(url.scheme(), "http" | "https") {
             continue;
         }
@@ -103,10 +105,7 @@ fn to_resources(page: &RawPage) -> Vec<MediaResource> {
 ///
 /// 这里补一个指向页面本身的视频资源：下载阶段由解析器去问 innertube
 /// 要最高清的 H.264 视频流与 AAC 音轨，再用 FFmpeg 合成一个文件。
-async fn youtube_page_resource(
-    final_url: &str,
-    resources: &mut Vec<MediaResource>,
-) -> bool {
+async fn youtube_page_resource(final_url: &str, resources: &mut Vec<MediaResource>) -> bool {
     if !crate::downloader::youtube::is_youtube_page(final_url) {
         return false;
     }
@@ -144,7 +143,8 @@ fn looks_like_login(final_url: &Url, page: &RawPage, resource_count: usize) -> b
         return true;
     }
     let title = page.title.to_ascii_lowercase();
-    let login_title = title.contains("登录") || title.contains("sign in") || title.contains("log in");
+    let login_title =
+        title.contains("登录") || title.contains("sign in") || title.contains("log in");
     let thin_page = page.body_text_len < 400;
     (page.has_password && resource_count < 3) || (login_title && resource_count < 3 && thin_page)
 }
@@ -171,7 +171,10 @@ pub async fn crawl(
     let page = match browser::load_and_extract(app, page_url.clone(), request.scroll).await {
         Ok(page) => page,
         Err(webview_error) => {
-            warnings.push(format!("WebView 加载失败，改用 HTML 兜底：{}", webview_error.message));
+            warnings.push(format!(
+                "WebView 加载失败，改用 HTML 兜底：{}",
+                webview_error.message
+            ));
             let _ = app.emit(
                 "crawl-progress",
                 CrawlProgress {
@@ -196,7 +199,8 @@ pub async fn crawl(
     let final_url = Url::parse(&page.final_url).unwrap_or_else(|_| page_url.clone());
     let host = host_label(&final_url);
     let mut resources = to_resources(&page);
-    let twitter_enhanced = twitter::normalize_video_resources(app, &page.final_url, &mut resources).await;
+    let twitter_enhanced =
+        twitter::normalize_video_resources(app, &page.final_url, &mut resources).await;
     let youtube_enhanced = youtube_page_resource(&page.final_url, &mut resources).await;
     let enhanced = twitter_enhanced
         || youtube_enhanced
@@ -204,8 +208,17 @@ pub async fn crawl(
             .iter()
             .any(|resource| crate::downloader::resolvers::supports(&resource.url));
     let mut counts = BTreeMap::new();
-    for kind in [MediaKind::Image, MediaKind::Video, MediaKind::Audio, MediaKind::Font, MediaKind::Other] {
-        let count = resources.iter().filter(|resource| resource.kind == kind).count();
+    for kind in [
+        MediaKind::Image,
+        MediaKind::Video,
+        MediaKind::Audio,
+        MediaKind::Font,
+        MediaKind::Other,
+    ] {
+        let count = resources
+            .iter()
+            .filter(|resource| resource.kind == kind)
+            .count();
         counts.insert(kind_key(kind), count);
     }
     let total_found = resources.len();
@@ -224,7 +237,10 @@ pub async fn crawl(
     if needs_login {
         warnings.push("页面看起来需要登录，请到设置中的登录管理完成登录后重试。".to_string());
     } else if resources.is_empty() {
-        warnings.push("没有发现可下载的媒体资源。部分站点可能依赖登录、滚动或 JavaScript 异步加载。".to_string());
+        warnings.push(
+            "没有发现可下载的媒体资源。部分站点可能依赖登录、滚动或 JavaScript 异步加载。"
+                .to_string(),
+        );
     }
 
     let _ = app.emit(

@@ -3,11 +3,12 @@ use url::Url;
 
 pub fn kind_from_extension(ext: &str) -> Option<MediaKind> {
     match ext.to_ascii_lowercase().as_str() {
-        "jpg" | "jpeg" | "png" | "webp" | "gif" | "avif" | "bmp" | "svg" | "ico" | "tif" | "tiff" => {
-            Some(MediaKind::Image)
-        }
+        "jpg" | "jpeg" | "png" | "webp" | "gif" | "avif" | "bmp" | "svg" | "ico" | "tif"
+        | "tiff" => Some(MediaKind::Image),
         "mp4" | "webm" | "mov" | "m4v" | "mkv" | "avi" | "m3u8" | "mpd" => Some(MediaKind::Video),
-        "mp3" | "m4a" | "wav" | "ogg" | "oga" | "flac" | "aac" | "opus" | "wma" => Some(MediaKind::Audio),
+        "mp3" | "m4a" | "wav" | "ogg" | "oga" | "flac" | "aac" | "opus" | "wma" => {
+            Some(MediaKind::Audio)
+        }
         "woff" | "woff2" | "ttf" | "otf" | "eot" => Some(MediaKind::Font),
         _ => None,
     }
@@ -15,8 +16,8 @@ pub fn kind_from_extension(ext: &str) -> Option<MediaKind> {
 
 /// Extensions that are unambiguously code/data, never downloadable media.
 const NON_MEDIA_EXTENSIONS: &[&str] = &[
-    "js", "mjs", "cjs", "css", "json", "map", "html", "htm", "xml", "txt", "csv", "pdf",
-    "zip", "gz", "tar", "rar", "7z", "wasm",
+    "js", "mjs", "cjs", "css", "json", "map", "html", "htm", "xml", "txt", "csv", "pdf", "zip",
+    "gz", "tar", "rar", "7z", "wasm",
 ];
 
 pub fn has_non_media_extension(url: &Url) -> bool {

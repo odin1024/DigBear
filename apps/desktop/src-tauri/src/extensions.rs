@@ -78,7 +78,11 @@ pub fn extension_root(app: &AppHandle) -> Result<PathBuf, AppError> {
 
 /// Executable name of the managed FFmpeg build.
 fn ffmpeg_file_name() -> &'static str {
-    if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" }
+    if cfg!(windows) {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    }
 }
 
 pub fn ffmpeg_binary(app: &AppHandle) -> Option<PathBuf> {
@@ -147,8 +151,8 @@ pub fn list(app: &AppHandle) -> Vec<ExtensionStatus> {
 }
 
 pub async fn install(app: &AppHandle, id: &str) -> Result<ExtensionStatus, AppError> {
-    let def = find_def(id)
-        .ok_or_else(|| AppError::new("extension_not_found", "没有找到这个扩展。"))?;
+    let def =
+        find_def(id).ok_or_else(|| AppError::new("extension_not_found", "没有找到这个扩展。"))?;
     if !cfg!(any(target_os = "macos", target_os = "windows")) {
         return Err(AppError::new(
             "extension_unsupported",
@@ -197,7 +201,9 @@ pub async fn install(app: &AppHandle, id: &str) -> Result<ExtensionStatus, AppEr
             ));
         }
         total = if partial {
-            response.content_length().map(|remaining| existing + remaining)
+            response
+                .content_length()
+                .map(|remaining| existing + remaining)
         } else {
             response.content_length().or(Some(FFMPEG_DOWNLOAD_SIZE))
         };
@@ -212,7 +218,9 @@ pub async fn install(app: &AppHandle, id: &str) -> Result<ExtensionStatus, AppEr
             .truncate(!partial)
             .open(&temp)
             .await
-            .map_err(|error| AppError::new("extension_failed", format!("无法写入扩展文件: {error}")))?;
+            .map_err(|error| {
+                AppError::new("extension_failed", format!("无法写入扩展文件: {error}"))
+            })?;
         let _ = app.emit(
             "extension-progress",
             ExtensionProgress {
@@ -283,7 +291,8 @@ pub async fn install(app: &AppHandle, id: &str) -> Result<ExtensionStatus, AppEr
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         let compressed = std::fs::File::open(&gz_path).map_err(|error| error.to_string())?;
         let mut decoder = flate2::read::GzDecoder::new(compressed);
-        let mut output = std::fs::File::create(&bin_path_for_task).map_err(|error| error.to_string())?;
+        let mut output =
+            std::fs::File::create(&bin_path_for_task).map_err(|error| error.to_string())?;
         std::io::copy(&mut decoder, &mut output).map_err(|error| error.to_string())?;
         #[cfg(unix)]
         {
@@ -292,7 +301,8 @@ pub async fn install(app: &AppHandle, id: &str) -> Result<ExtensionStatus, AppEr
                 .map_err(|error| error.to_string())?
                 .permissions();
             permissions.set_mode(0o755);
-            std::fs::set_permissions(&bin_path_for_task, permissions).map_err(|error| error.to_string())?;
+            std::fs::set_permissions(&bin_path_for_task, permissions)
+                .map_err(|error| error.to_string())?;
         }
         let _ = std::fs::remove_file(&gz_path);
         Ok(())
@@ -308,7 +318,10 @@ pub async fn install(app: &AppHandle, id: &str) -> Result<ExtensionStatus, AppEr
         .stderr(Stdio::piped())
         .output()
         .await;
-    let verified = version_output.as_ref().map(|output| output.status.success()).unwrap_or(false);
+    let verified = version_output
+        .as_ref()
+        .map(|output| output.status.success())
+        .unwrap_or(false);
     if !verified {
         let _ = tokio::fs::remove_file(&bin_path).await;
         return Err(AppError::new(
@@ -358,8 +371,8 @@ pub async fn install(app: &AppHandle, id: &str) -> Result<ExtensionStatus, AppEr
 }
 
 pub fn remove(app: &AppHandle, id: &str) -> Result<Vec<ExtensionStatus>, AppError> {
-    let def = find_def(id)
-        .ok_or_else(|| AppError::new("extension_not_found", "没有找到这个扩展。"))?;
+    let def =
+        find_def(id).ok_or_else(|| AppError::new("extension_not_found", "没有找到这个扩展。"))?;
     let dir = extension_root(app)?.join(def.id);
     if dir.exists() {
         std::fs::remove_dir_all(&dir)

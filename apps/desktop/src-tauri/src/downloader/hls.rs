@@ -6,10 +6,10 @@
 use crate::session::cookie_header_for;
 use regex::Regex;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
-use url::Url;
 use std::process::Stdio;
+use std::time::Duration;
 use tauri::AppHandle;
+use url::Url;
 
 pub fn ffmpeg_binary(app: &AppHandle) -> Option<PathBuf> {
     crate::extensions::ffmpeg_binary(app)
@@ -140,7 +140,10 @@ async fn resolve_best_hls(app: &AppHandle, url: &str, page_url: &str) -> String 
 
 fn twitter_video_id(raw: &str) -> Option<String> {
     let pattern = Regex::new(r"/amplify_video/(\d+)/").ok()?;
-    pattern.captures(raw)?.get(1).map(|m| m.as_str().to_string())
+    pattern
+        .captures(raw)?
+        .get(1)
+        .map(|m| m.as_str().to_string())
 }
 
 /// X/Twitter renders its player from inline JSON; the raw HTML (which still
@@ -157,7 +160,10 @@ async fn find_twitter_master(app: &AppHandle, page_url: &str, video_id: &str) ->
     let mut request = client
         .get(&page_url)
         .header("Referer", &page_url)
-        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        )
         .header("Accept-Language", "en-US,en;q=0.9");
     if !cookie.is_empty() {
         request = request.header("Cookie", cookie);
@@ -165,7 +171,12 @@ async fn find_twitter_master(app: &AppHandle, page_url: &str, video_id: &str) ->
     let text = request.send().await.ok()?.text().await.ok()?;
     let candidates = extract_twitter_masters(&text, video_id);
     for candidate in candidates {
-        let Ok(response) = client.get(&candidate).header("Referer", &page_url).send().await else {
+        let Ok(response) = client
+            .get(&candidate)
+            .header("Referer", &page_url)
+            .send()
+            .await
+        else {
             continue;
         };
         if !response.status().is_success() {
@@ -188,8 +199,13 @@ async fn find_twitter_master(app: &AppHandle, page_url: &str, video_id: &str) ->
 /// Turn `/user/status/<id>/video/1` into `/user/status/<id>`; the `/video/1`
 /// SPA route often serves a shell without the embedded media payload.
 pub(crate) fn canonical_twitter_status_url(raw: &str) -> String {
-    let Ok(mut url) = Url::parse(raw) else { return raw.to_string() };
-    let segments: Vec<&str> = url.path_segments().map(|items| items.collect()).unwrap_or_default();
+    let Ok(mut url) = Url::parse(raw) else {
+        return raw.to_string();
+    };
+    let segments: Vec<&str> = url
+        .path_segments()
+        .map(|items| items.collect())
+        .unwrap_or_default();
     let Some(status_index) = segments.iter().position(|segment| *segment == "status") else {
         return raw.to_string();
     };
@@ -220,16 +236,23 @@ pub(crate) async fn twitter_masters_for_page(
     let mut request = client
         .get(&page_url)
         .header("Referer", &page_url)
-        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        )
         .header("Accept-Language", "en-US,en;q=0.9");
     if !cookie.is_empty() {
         request = request.header("Cookie", cookie);
     }
-    let Ok(response) = request.send().await else { return Vec::new() };
+    let Ok(response) = request.send().await else {
+        return Vec::new();
+    };
     if !response.status().is_success() {
         return Vec::new();
     }
-    let Ok(text) = response.text().await else { return Vec::new() };
+    let Ok(text) = response.text().await else {
+        return Vec::new();
+    };
     extract_all_twitter_masters(&text)
 }
 
@@ -246,7 +269,10 @@ fn extract_all_twitter_masters(html: &str) -> Vec<(String, String)> {
             continue;
         };
         let entry = (video_id.as_str().to_string(), url.as_str().to_string());
-        if !found.iter().any(|(id, existing)| id == &entry.0 && existing == &entry.1) {
+        if !found
+            .iter()
+            .any(|(id, existing)| id == &entry.0 && existing == &entry.1)
+        {
             found.push(entry);
         }
     }
@@ -259,7 +285,9 @@ fn extract_twitter_masters(html: &str, video_id: &str) -> Vec<String> {
         r#"https://video\.twimg\.com/amplify_video/(\d+)/pl/([A-Za-z0-9_-]+)\.m3u8(?:\?[^\s"'<>\\]*)?"#,
     )
     .ok();
-    let Some(pattern) = pattern else { return Vec::new() };
+    let Some(pattern) = pattern else {
+        return Vec::new();
+    };
     let mut found = Vec::new();
     for capture in pattern.captures_iter(&normalized) {
         if capture.get(1).map(|m| m.as_str()) != Some(video_id) {
@@ -340,8 +368,7 @@ fn describe_ffmpeg_error(stderr: &[u8], exit_code: Option<i32>) -> String {
     let details = text
         .lines()
         .map(str::trim)
-        .filter(|line| !line.is_empty())
-        .last()
+        .rfind(|line| !line.is_empty())
         .map(str::to_string)
         .unwrap_or_default();
     if details.is_empty() {
@@ -362,7 +389,11 @@ fn describe_ffmpeg_error(stderr: &[u8], exit_code: Option<i32>) -> String {
         } else {
             ""
         };
-        let suffix = if hint.is_empty() { String::new() } else { format!("（{hint}）") };
+        let suffix = if hint.is_empty() {
+            String::new()
+        } else {
+            format!("（{hint}）")
+        };
         match exit_code {
             Some(code) => format!("ffmpeg 下载失败（退出码 {code}）：{details}{suffix}"),
             None => format!("ffmpeg 下载失败：{details}{suffix}"),
@@ -397,7 +428,8 @@ mod tests {
 
     #[test]
     fn extracts_twitter_masters_from_page() {
-        let html = r#"{"url":"https:\/\/video.twimg.com\/amplify_video\/123\/pl\/MASTER.m3u8?tag=14"}"#;
+        let html =
+            r#"{"url":"https:\/\/video.twimg.com\/amplify_video\/123\/pl\/MASTER.m3u8?tag=14"}"#;
         let masters = extract_all_twitter_masters(html);
         assert_eq!(masters.len(), 1);
         assert_eq!(masters[0].0, "123");

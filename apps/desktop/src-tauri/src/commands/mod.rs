@@ -1,7 +1,8 @@
 use crate::core::error::AppError;
 use crate::core::history::{FavoriteEntry, HistoryEntry};
 use crate::core::models::{
-    AppSettings, CrawlRequest, CrawlResult, DownloadRequest, DownloadSummary, LoginSite, SessionInfo,
+    AppSettings, CrawlRequest, CrawlResult, DownloadRequest, DownloadSummary, LoginSite,
+    SessionInfo,
 };
 use crate::core::state::AppState;
 use crate::{crawler, downloader, extensions, session};
@@ -258,8 +259,7 @@ pub async fn open_video_preview(
 
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), AppError> {
-    let parsed = url::Url::parse(&url)
-        .map_err(|_| AppError::invalid_url("链接格式不正确。"))?;
+    let parsed = url::Url::parse(&url).map_err(|_| AppError::invalid_url("链接格式不正确。"))?;
     if !matches!(parsed.scheme(), "http" | "https") {
         return Err(AppError::invalid_url("只能打开 http/https 链接。"));
     }
@@ -289,7 +289,6 @@ pub fn open_url(url: String) -> Result<(), AppError> {
     }
 }
 
-
 #[tauri::command]
 pub fn list_extensions(app: AppHandle) -> Vec<extensions::ExtensionStatus> {
     extensions::list(&app)
@@ -310,7 +309,6 @@ pub fn remove_extension(
 ) -> Result<Vec<extensions::ExtensionStatus>, AppError> {
     extensions::remove(&app, &id)
 }
-
 
 #[tauri::command]
 pub fn set_app_language(app: AppHandle, language: String) -> Result<(), AppError> {

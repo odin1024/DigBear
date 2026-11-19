@@ -78,8 +78,10 @@ fn kind_from_raw(raw: &RawResource) -> MediaKind {
         "video" => MediaKind::Video,
         "audio" => MediaKind::Audio,
         "font" => MediaKind::Font,
-        _ => crate::core::classify::kind_from_url(&Url::parse(&raw.url).unwrap_or_else(|_| Url::parse("https://invalid").unwrap()))
-            .unwrap_or(MediaKind::Other),
+        _ => crate::core::classify::kind_from_url(
+            &Url::parse(&raw.url).unwrap_or_else(|_| Url::parse("https://invalid").unwrap()),
+        )
+        .unwrap_or(MediaKind::Other),
     }
 }
 
@@ -212,4 +214,3 @@ pub async fn load_and_extract(
 pub fn raw_kind(raw: &RawResource) -> MediaKind {
     kind_from_raw(raw)
 }
-

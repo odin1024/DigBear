@@ -19,7 +19,7 @@ use crate::core::models::{
 };
 use crate::core::state::AppState;
 use crate::core::url::{host_label, normalize_page_url, site_folder};
-use paths::{PathPlanner, PartGuard};
+use paths::{PartGuard, PathPlanner};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
@@ -52,15 +52,23 @@ pub async fn download_batch(
     let planners: Vec<(crate::core::models::MediaKind, Arc<PathPlanner>)> =
         if settings.organize_by_kind {
             use crate::core::models::MediaKind;
-            [MediaKind::Image, MediaKind::Video, MediaKind::Audio, MediaKind::Font]
-                .into_iter()
-                .map(|kind| {
-                    let sub = folder.join(paths::kind_folder(kind));
-                    (kind, Arc::new(PathPlanner::new(sub)))
-                })
-                .collect()
+            [
+                MediaKind::Image,
+                MediaKind::Video,
+                MediaKind::Audio,
+                MediaKind::Font,
+            ]
+            .into_iter()
+            .map(|kind| {
+                let sub = folder.join(paths::kind_folder(kind));
+                (kind, Arc::new(PathPlanner::new(sub)))
+            })
+            .collect()
         } else {
-            vec![(crate::core::models::MediaKind::Other, Arc::new(PathPlanner::new(folder.clone())))]
+            vec![(
+                crate::core::models::MediaKind::Other,
+                Arc::new(PathPlanner::new(folder.clone())),
+            )]
         };
     let planner_for = |kind: crate::core::models::MediaKind| -> Arc<PathPlanner> {
         planners
@@ -109,7 +117,8 @@ pub async fn download_batch(
                 summary.files.push(DownloadFile {
                     id: item.id.clone(),
                     url: item.url.clone(),
-                    path: PathBuf::from(&known.folder).join(&known.filename)
+                    path: PathBuf::from(&known.folder)
+                        .join(&known.filename)
                         .to_string_lossy()
                         .to_string(),
                     filename: known.filename.clone(),
@@ -125,7 +134,13 @@ pub async fn download_batch(
                         error: None,
                     },
                 );
-                emit_progress(app, completed, total, Some(item.id.clone()), Some(known.filename));
+                emit_progress(
+                    app,
+                    completed,
+                    total,
+                    Some(item.id.clone()),
+                    Some(known.filename),
+                );
                 continue;
             }
 
@@ -193,16 +208,18 @@ pub async fn download_batch(
 
         // Wait for one worker, waking up periodically to poll cancellation even
         // when every in-flight download is slow.
-        match tokio::time::timeout(
-            std::time::Duration::from_millis(200),
-            tasks.join_next(),
-        )
-        .await
-        {
+        match tokio::time::timeout(std::time::Duration::from_millis(200), tasks.join_next()).await {
             Ok(Some(Ok(outcome))) => {
                 completed += 1;
-                apply_outcome(app, &mut summary, outcome, completed, total, Some(&state.manifest));
-                if completed % 5 == 0 {
+                apply_outcome(
+                    app,
+                    &mut summary,
+                    outcome,
+                    completed,
+                    total,
+                    Some(&state.manifest),
+                );
+                if completed.is_multiple_of(5) {
                     let _ = state.manifest.persist();
                 }
             }
@@ -226,8 +243,15 @@ pub async fn download_batch(
     while let Some(joined) = tasks.join_next().await {
         if let Ok(outcome) = joined {
             completed += 1;
-            apply_outcome(app, &mut summary, outcome, completed, total, Some(&state.manifest));
-            if completed % 5 == 0 {
+            apply_outcome(
+                app,
+                &mut summary,
+                outcome,
+                completed,
+                total,
+                Some(&state.manifest),
+            );
+            if completed.is_multiple_of(5) {
                 let _ = state.manifest.persist();
             }
         }
@@ -316,7 +340,15 @@ async fn run_item_with_retry(context: ItemContext, retries: u8) -> ItemOutcome {
 }
 
 async fn run_item(context: ItemContext, keep_partial: bool) -> ItemOutcome {
-    let ItemContext { app, item, page_url, planner, target, stem, progress } = context;
+    let ItemContext {
+        app,
+        item,
+        page_url,
+        planner,
+        target,
+        stem,
+        progress,
+    } = context;
 
     let parsed_url = match Url::parse(&item.url) {
         Ok(url) => url,

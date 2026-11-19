@@ -60,7 +60,12 @@ pub async fn normalize_video_resources(
     let is_x_page = url::Url::parse(page_url)
         .ok()
         .and_then(|url| url.host_str().map(str::to_string))
-        .map(|host| host == "x.com" || host.ends_with(".x.com") || host == "twitter.com" || host.ends_with(".twitter.com"))
+        .map(|host| {
+            host == "x.com"
+                || host.ends_with(".x.com")
+                || host == "twitter.com"
+                || host.ends_with(".twitter.com")
+        })
         .unwrap_or(false);
     if !is_x_page {
         return false;
@@ -130,7 +135,10 @@ pub async fn normalize_video_resources(
                 && !is_audio_asset(&resource.url))
             .then(|| resource.url.clone())
         });
-        chosen.insert(id.clone(), (fallback.unwrap_or_else(|| template.url.clone()), dimensions));
+        chosen.insert(
+            id.clone(),
+            (fallback.unwrap_or_else(|| template.url.clone()), dimensions),
+        );
     }
     let mut output = Vec::with_capacity(resources.len());
     let mut emitted: HashMap<String, bool> = HashMap::new();
@@ -165,7 +173,9 @@ pub async fn normalize_video_resources(
         if emitted.contains_key(&id) {
             continue;
         }
-        let Some(master) = masters.get(&id) else { continue };
+        let Some(master) = masters.get(&id) else {
+            continue;
+        };
         let parsed = url::Url::parse(master).ok();
         output.push(MediaResource {
             id: format!("x-video-{id}"),

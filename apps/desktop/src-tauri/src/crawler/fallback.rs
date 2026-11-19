@@ -54,13 +54,23 @@ async fn fetch_html(app: &AppHandle, url: &str) -> Result<(String, u16, String),
     if !output.status.success() {
         return Err(AppError::new(
             "crawl_failed",
-            format!("页面请求失败: {}", String::from_utf8_lossy(&output.stderr).trim()),
+            format!(
+                "页面请求失败: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ),
         ));
     }
     let mut lines = meta.lines();
-    let status = lines.next().and_then(|v| v.trim().parse().ok()).unwrap_or(0);
+    let status = lines
+        .next()
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(0);
     let final_url = lines.next().unwrap_or(url).trim().to_string();
-    Ok((String::from_utf8_lossy(&bytes).to_string(), status, final_url))
+    Ok((
+        String::from_utf8_lossy(&bytes).to_string(),
+        status,
+        final_url,
+    ))
 }
 
 fn media_regex() -> Regex {
@@ -70,7 +80,10 @@ fn media_regex() -> Regex {
 pub async fn fetch_and_extract(app: &AppHandle, url: &Url) -> Result<RawPage, AppError> {
     let (html, status, final_url) = fetch_html(app, url.as_str()).await?;
     if status == 0 || status >= 400 {
-        return Err(AppError::new("crawl_failed", format!("页面返回 HTTP {status}。")));
+        return Err(AppError::new(
+            "crawl_failed",
+            format!("页面返回 HTTP {status}。"),
+        ));
     }
     let final_url = Url::parse(&final_url).unwrap_or_else(|_| url.clone());
     let base = final_url.to_string();

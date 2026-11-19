@@ -1,7 +1,7 @@
 use crate::core::config::SettingsStore;
+use crate::core::error::AppError;
 use crate::core::history::HistoryStore;
 use crate::core::manifest::DownloadManifest;
-use crate::core::error::AppError;
 use crate::core::models::AppSettings;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::AppHandle;

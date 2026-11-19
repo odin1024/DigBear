@@ -12,10 +12,8 @@ pub fn free_space(path: &std::path::Path) -> Option<(u64, u64)> {
     // 取路径所在卷：先找最近的已存在祖先
     let mut probe = path.to_path_buf();
     while !probe.exists() {
-        match probe.parent() {
-            Some(parent) => probe = parent.to_path_buf(),
-            None => return None,
-        }
+        let parent = probe.parent()?;
+        probe = parent.to_path_buf();
     }
     let wide: Vec<u16> = probe
         .as_os_str()

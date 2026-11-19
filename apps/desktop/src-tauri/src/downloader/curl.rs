@@ -29,7 +29,10 @@ pub fn curl_binary() -> Option<PathBuf> {
     {
         find_binary(
             "curl.exe",
-            &[r"C:\Windows\System32\curl.exe", r"C:\Windows\SysWOW64\curl.exe"],
+            &[
+                r"C:\Windows\System32\curl.exe",
+                r"C:\Windows\SysWOW64\curl.exe",
+            ],
         )
     }
     #[cfg(not(windows))]
@@ -50,7 +53,9 @@ pub async fn fetch_direct(
     let cookie = cookie_header_for(app, url);
 
     // 已经有半成品时接着下 —— 大文件在慢速网络下不至于每次重试都从头再来。
-    let can_resume = std::fs::metadata(target).map(|m| m.len() > 0).unwrap_or(false);
+    let can_resume = std::fs::metadata(target)
+        .map(|m| m.len() > 0)
+        .unwrap_or(false);
 
     let output = run_curl(&curl, url, page_url, target, &cookie, can_resume).await?;
     if output.status.success() {
@@ -133,7 +138,10 @@ fn parse_info(stdout: &[u8]) -> FetchInfo {
     let mut lines = text.lines();
     let content_type = lines.next().unwrap_or("").trim().to_string();
     let effective_url = lines.next().unwrap_or("").trim().to_string();
-    FetchInfo { content_type, effective_url }
+    FetchInfo {
+        content_type,
+        effective_url,
+    }
 }
 
 fn describe_failure(stderr: &[u8], exit_code: Option<i32>) -> String {
@@ -166,7 +174,7 @@ fn describe_failure(stderr: &[u8], exit_code: Option<i32>) -> String {
 
 fn http_status(stderr: &str) -> Option<u16> {
     let after = stderr.split("returned error:").nth(1)?;
-    after.trim().split_whitespace().next()?.parse().ok()
+    after.split_whitespace().next()?.parse().ok()
 }
 
 #[cfg(test)]
@@ -175,10 +183,16 @@ mod tests {
 
     #[test]
     fn maps_common_http_failures_to_friendly_messages() {
-        assert!(describe_failure(b"curl: (22) The requested URL returned error: 403", Some(22))
-            .contains("需要登录"));
-        assert!(describe_failure(b"curl: (22) The requested URL returned error: 404", Some(22))
-            .contains("不存在"));
+        assert!(describe_failure(
+            b"curl: (22) The requested URL returned error: 403",
+            Some(22)
+        )
+        .contains("需要登录"));
+        assert!(describe_failure(
+            b"curl: (22) The requested URL returned error: 404",
+            Some(22)
+        )
+        .contains("不存在"));
         assert!(describe_failure(b"curl: (28) Operation timed out", Some(28)).contains("超时"));
         assert!(describe_failure(b"", Some(7)).contains("curl"));
     }

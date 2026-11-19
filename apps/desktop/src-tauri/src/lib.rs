@@ -1,12 +1,14 @@
 mod commands;
 mod core;
-mod devtest;
 mod crawler;
+mod devtest;
 mod downloader;
 mod extensions;
 mod session;
 
-use tauri::menu::{Menu, MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+use tauri::menu::{
+    Menu, MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
+};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
@@ -21,9 +23,19 @@ use tauri::{Emitter, Manager};
 /// Windows 上这是标题栏下方的菜单条，macOS 上是系统菜单栏。
 pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Result<()> {
     // 不放「翻找」：页面顶部导航已经有了，重复一遍反而杂乱。
-    let about = MenuItemBuilder::with_id("about", if english { "About" } else { "关于" }).build(app)?;
-    let settings = MenuItemBuilder::with_id("settings", if english { "Settings…" } else { "设置…" }).build(app)?;
-    let quit = PredefinedMenuItem::quit(app, Some(if english { "Quit DigBear" } else { "退出掘掘熊" }))?;
+    let about =
+        MenuItemBuilder::with_id("about", if english { "About" } else { "关于" }).build(app)?;
+    let settings =
+        MenuItemBuilder::with_id("settings", if english { "Settings…" } else { "设置…" })
+            .build(app)?;
+    let quit = PredefinedMenuItem::quit(
+        app,
+        Some(if english {
+            "Quit DigBear"
+        } else {
+            "退出掘掘熊"
+        }),
+    )?;
 
     let app_menu = SubmenuBuilder::new(app, "DigBear")
         .items(&[&settings, &about])
@@ -37,7 +49,8 @@ pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Re
     let cut = PredefinedMenuItem::cut(app, Some(if english { "Cut" } else { "剪切" }))?;
     let copy = PredefinedMenuItem::copy(app, Some(if english { "Copy" } else { "复制" }))?;
     let paste = PredefinedMenuItem::paste(app, Some(if english { "Paste" } else { "粘贴" }))?;
-    let select_all = PredefinedMenuItem::select_all(app, Some(if english { "Select All" } else { "全选" }))?;
+    let select_all =
+        PredefinedMenuItem::select_all(app, Some(if english { "Select All" } else { "全选" }))?;
     let edit_menu = SubmenuBuilder::new(app, edit_title)
         .items(&[&undo, &redo])
         .separator()
@@ -47,15 +60,41 @@ pub(crate) fn build_app_menu(app: &tauri::AppHandle, english: bool) -> tauri::Re
         .build()?;
 
     let view_title = if english { "View" } else { "视图" };
-    let theme_lantern = MenuItemBuilder::with_id("theme:lantern", if english { "Lantern" } else { "矿灯紫琥珀" }).build(app)?;
-    let theme_forest = MenuItemBuilder::with_id("theme:forest", if english { "Forest" } else { "森林手账" }).build(app)?;
-    let theme_night = MenuItemBuilder::with_id("theme:night", if english { "Night mine" } else { "夜矿深色" }).build(app)?;
+    let theme_lantern = MenuItemBuilder::with_id(
+        "theme:lantern",
+        if english {
+            "Lantern"
+        } else {
+            "矿灯紫琥珀"
+        },
+    )
+    .build(app)?;
+    let theme_forest =
+        MenuItemBuilder::with_id("theme:forest", if english { "Forest" } else { "森林手账" })
+            .build(app)?;
+    let theme_night = MenuItemBuilder::with_id(
+        "theme:night",
+        if english {
+            "Night mine"
+        } else {
+            "夜矿深色"
+        },
+    )
+    .build(app)?;
     let view_menu = SubmenuBuilder::new(app, view_title)
         .items(&[&theme_lantern, &theme_forest, &theme_night])
         .build()?;
 
     let help_title = if english { "Help" } else { "帮助" };
-    let repo = MenuItemBuilder::with_id("repo", if english { "Source Code" } else { "开源仓库" }).build(app)?;
+    let repo = MenuItemBuilder::with_id(
+        "repo",
+        if english {
+            "Source Code"
+        } else {
+            "开源仓库"
+        },
+    )
+    .build(app)?;
     let help_menu = SubmenuBuilder::new(app, help_title)
         .items(&[&repo])
         .build()?;
@@ -105,7 +144,10 @@ fn parse_crawl_arg<I: Iterator<Item = String>>(mut args: I) -> Option<String> {
             return Some(url.trim().to_string());
         }
         if arg == "--crawl" {
-            return args.next().map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
+            return args
+                .next()
+                .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty());
         }
         if arg == "--deep-link" {
             if let Some(link) = args.next() {
@@ -128,7 +170,9 @@ fn url_from_deep_link(link: &str) -> Option<String> {
     let rest = trimmed.strip_prefix("digbear://")?;
     let query = rest.split_once('?').map(|(_, value)| value).unwrap_or("");
     for pair in query.split('&') {
-        let Some((key, value)) = pair.split_once('=') else { continue };
+        let Some((key, value)) = pair.split_once('=') else {
+            continue;
+        };
         if key != "url" {
             continue;
         }
@@ -155,7 +199,8 @@ fn build_tray(app: &tauri::AppHandle) {
             return;
         }
     };
-    let crawl_item = match MenuItem::with_id(app, "crawl", "翻找剪贴板链接", true, None::<&str>) {
+    let crawl_item = match MenuItem::with_id(app, "crawl", "翻找剪贴板链接", true, None::<&str>)
+    {
         Ok(item) => item,
         Err(error) => {
             eprintln!("[digbear] 托盘菜单项创建失败: {error}");

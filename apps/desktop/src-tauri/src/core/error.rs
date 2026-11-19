@@ -8,7 +8,10 @@ pub struct AppError {
 
 impl AppError {
     pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
-        Self { code: code.into(), message: message.into() }
+        Self {
+            code: code.into(),
+            message: message.into(),
+        }
     }
 
     pub fn internal(message: impl Into<String>) -> Self {
@@ -18,8 +21,6 @@ impl AppError {
     pub fn invalid_url(message: impl Into<String>) -> Self {
         Self::new("invalid_url", message)
     }
-
-
 }
 
 impl std::fmt::Display for AppError {

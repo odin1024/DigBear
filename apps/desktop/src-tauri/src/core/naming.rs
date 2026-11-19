@@ -85,11 +85,15 @@ pub fn fit_to_budget(stem: &str, ext: &str, budget: usize) -> String {
 }
 
 pub fn filename_from_url(url: &url::Url) -> Option<String> {
-    let last = url.path_segments()?.filter(|s| !s.is_empty()).last()?;
+    let last = url.path_segments()?.rfind(|s| !s.is_empty())?;
     let decoded = percent_encoding::percent_decode_str(last)
         .decode_utf8_lossy()
         .to_string();
-    if decoded.is_empty() { None } else { Some(decoded) }
+    if decoded.is_empty() {
+        None
+    } else {
+        Some(decoded)
+    }
 }
 
 pub fn extension_from_url(url: &url::Url) -> Option<String> {
@@ -101,7 +105,12 @@ pub fn extension_from_url(url: &url::Url) -> Option<String> {
 }
 
 pub fn extension_for_content_type(content_type: &str) -> Option<&'static str> {
-    let mime = content_type.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+    let mime = content_type
+        .split(';')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
     match mime.as_str() {
         "image/jpeg" => Some("jpg"),
         "image/png" => Some("png"),
@@ -177,7 +186,10 @@ mod tests {
 
     #[test]
     fn maps_common_content_types() {
-        assert_eq!(extension_for_content_type("image/jpeg; charset=binary"), Some("jpg"));
+        assert_eq!(
+            extension_for_content_type("image/jpeg; charset=binary"),
+            Some("jpg")
+        );
         assert_eq!(extension_for_content_type("video/mp4"), Some("mp4"));
         assert_eq!(extension_for_content_type("audio/mpeg"), Some("mp3"));
         assert_eq!(extension_for_content_type("font/woff2"), Some("woff2"));

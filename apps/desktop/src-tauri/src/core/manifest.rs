@@ -35,16 +35,18 @@ impl DownloadManifest {
     pub fn load(dir: &Path) -> Self {
         let path = dir.join("downloads.json");
         let entries = match std::fs::read_to_string(&path) {
-            Ok(raw) => serde_json::from_str::<Vec<ManifestEntry>>(raw.strip_prefix('\u{feff}').unwrap_or(&raw))
-                .map(|list| {
-                    list.into_iter()
-                        .map(|entry| (entry.url.clone(), entry))
-                        .collect()
-                })
-                .unwrap_or_else(|error| {
-                    eprintln!("[digbear] 下载清单解析失败: {error}");
-                    HashMap::new()
-                }),
+            Ok(raw) => serde_json::from_str::<Vec<ManifestEntry>>(
+                raw.strip_prefix('\u{feff}').unwrap_or(&raw),
+            )
+            .map(|list| {
+                list.into_iter()
+                    .map(|entry| (entry.url.clone(), entry))
+                    .collect()
+            })
+            .unwrap_or_else(|error| {
+                eprintln!("[digbear] 下载清单解析失败: {error}");
+                HashMap::new()
+            }),
             Err(_) => HashMap::new(),
         };
         Self {
@@ -68,7 +70,12 @@ impl DownloadManifest {
 
     /// 查一条记录；文件已经不在磁盘上时视为没下过。
     pub fn lookup(&self, url: &str) -> Option<ManifestEntry> {
-        let entry = self.entries.read().expect("manifest lock").get(url).cloned()?;
+        let entry = self
+            .entries
+            .read()
+            .expect("manifest lock")
+            .get(url)
+            .cloned()?;
         let path = Path::new(&entry.folder).join(&entry.filename);
         if path.exists() {
             Some(entry)

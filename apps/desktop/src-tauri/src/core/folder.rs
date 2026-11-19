@@ -14,7 +14,9 @@ const MAX_URLS: usize = 200;
 const MAX_TEXT_BYTES: u64 = 512 * 1024;
 
 /// 会被当成文本扫一遍的扩展名。
-const TEXT_EXTENSIONS: &[&str] = &["txt", "md", "csv", "json", "html", "htm", "log", "url", "webloc"];
+const TEXT_EXTENSIONS: &[&str] = &[
+    "txt", "md", "csv", "json", "html", "htm", "log", "url", "webloc",
+];
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct FolderScan {
@@ -81,7 +83,11 @@ pub fn scan_folder(root: &Path) -> FolderScan {
         }
     }
 
-    FolderScan { urls, scanned_files, scanned_dirs }
+    FolderScan {
+        urls,
+        scanned_files,
+        scanned_dirs,
+    }
 }
 
 /// 从一段文本里挑出网址。
@@ -122,7 +128,15 @@ pub fn urls_in_text(content: &str) -> Vec<String> {
             let absolute = index + start;
             let tail = &content[absolute..];
             let end = tail
-                .find(|c: char| c.is_whitespace() || c == '"' || c == '\'' || c == '<' || c == '>' || c == ')' || c == ']')
+                .find(|c: char| {
+                    c.is_whitespace()
+                        || c == '"'
+                        || c == '\''
+                        || c == '<'
+                        || c == '>'
+                        || c == ')'
+                        || c == ']'
+                })
                 .unwrap_or(tail.len());
             let candidate = tail[..end].trim_end_matches(['.', ',', ';', ':']);
             if candidate.len() > "https://".len() {
@@ -142,7 +156,10 @@ mod tests {
     #[test]
     fn reads_url_shortcuts() {
         let content = "[InternetShortcut]\r\nURL=https://example.com/a\r\nIconIndex=0\r\n";
-        assert_eq!(urls_in_text(content), vec!["https://example.com/a".to_string()]);
+        assert_eq!(
+            urls_in_text(content),
+            vec!["https://example.com/a".to_string()]
+        );
     }
 
     #[test]
@@ -170,7 +187,9 @@ mod tests {
         assert!(result.urls.contains(&"https://example.com/a".to_string()));
         assert!(result.urls.contains(&"https://example.com/b".to_string()));
         // 二进制/未知扩展名不参与扫描。
-        assert!(!result.urls.contains(&"https://example.com/skip".to_string()));
+        assert!(!result
+            .urls
+            .contains(&"https://example.com/skip".to_string()));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
