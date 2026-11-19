@@ -14,6 +14,14 @@ export function detectLocale(): Locale {
 }
 
 export function loadLocale(): Locale {
+  // URL 参数优先：?lang=en / ?lang=zh
+  // 这样分享出去的链接可以直接打开对应语言，收件人不用自己切。
+  try {
+    const param = new URLSearchParams(window.location.search).get("lang");
+    if (param === "zh" || param === "en") return param;
+  } catch {
+    /* URL parsing may fail in odd environments */
+  }
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "zh" || stored === "en") return stored;
