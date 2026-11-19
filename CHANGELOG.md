@@ -54,6 +54,23 @@
 - `devtest`/`run_unit_tests` 之外顺带修了 CI：macOS runner 排队会被取消、
   把整个 workflow 拖成 cancelled，现在只在 Windows 上跑检查
 
+
+### 新增 · 项目主页英文版
+
+- 新增 `README.en.md`：完整英文介绍、下载说明、已知限制、反馈入口与开发者区
+- README.md 顶部加语言切换（简体中文 / English）
+- 官网支持 `?lang=en` / `?lang=zh`：分享出去的链接能直接打开对应语言
+
+### 工程 · 质量关卡补齐
+
+- 修掉一个被单测 harness 掩盖的问题：主 crate 的 `test` target 一直编译不过
+  （上次给 `PageVideoResolver::resolve` 加 `AppHandle` 参数时，youtube.rs 的
+  单元测试没跟着改）。现在拆出 `resolve_with_cookie(url, cookie)`，不依赖
+  `AppHandle`，网络集成测试直接调它
+- 清理 6 个 clippy 警告，并全量 rustfmt 格式化
+- CI 新增三道关卡：`pnpm audit`、`cargo fmt --check`、`cargo clippy -D warnings`
+- 构建依赖升级：glob 10 → 14、minimatch 10 → 11、playwright-core 1.64 → 1.65，
+  `pnpm audit` 从 3 个漏洞（1 high + 2 moderate）降到 0
 ## [0.4.0] - 2026-11-01
 
 Windows 移植版的首个正式发布版。相对上游 `0.3.2`，补齐了全部 Windows 平台分支，
