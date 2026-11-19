@@ -48,3 +48,15 @@ jobs:
 
       - name: Rust tests
         run: pnpm test:rust
+
+      # 依赖安全：构建期依赖里的已知漏洞一并拦下
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
+
+      # 格式与 lint：项目自己声明了 lint:rust，就在 CI 里真的跑起来，
+      # 免得格式债和 clippy 警告再慢慢堆积。
+      - name: Rust format check
+        run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check
+
+      - name: Rust clippy
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings
