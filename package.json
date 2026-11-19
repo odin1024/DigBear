@@ -23,6 +23,6 @@
     "lint:commit": "commitlint --from HEAD~1 --to HEAD"
   },
   "devDependencies": {
-    "playwright-core": "^1.64.1"
+    "playwright-core": "^1.65.1"
   }
 }

@@ -4,3 +4,9 @@ packages:
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true
+
+# vite 6 带的 stylus 依赖 glob@10，有两个已知漏洞（仅构建期 CLI 用得到）。
+# 项目里没有 .styl 文件，这个依赖只是搭在依赖树上，强制升级到已修复的 11.x 即可。
+overrides:
+  glob: ^14.0.2
+  minimatch: ^11.0.1
