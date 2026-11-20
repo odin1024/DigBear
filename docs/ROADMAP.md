@@ -104,10 +104,21 @@
 
 ## C. 增强 —— 有余力再做
 
-### C1 ⬜ CDP 网络层抓取（补 `blob:` / MSE / iframe 内资源）
-- 上游 `docs/media-extraction.md` 明确列出这三条是能力短板
-- Windows 上 Tauri 直接暴露 `ICoreWebView2Controller`，可以挂 CDP 的 `Network` / `Fetch` 事件
-  在**网络层**捕获，直补上游补不了的场景
+### C1 ◐ CDP 网络层抓取（底层已通，默认关闭待集成）
+
+DOM 扫描只能看到页面源码里写死的东西，运行时才出现的资源（接口直链、
+动态插入的 `<video>`、`blob:` 开头的 MSE 流）一条都看不到 —— 这部分得在网络层看。
+
+- ✅ **底层已通**：在 WebView2 上成功打开 CDP 的 `Network` 域，能持续收到
+  `Network.responseReceived` 事件并解析出 URL / MIME / 状态码 / requestId；
+  `Network.getResponseBody` 也能调到（用来挖接口 JSON 里的媒体直链）
+- ⬜ **与抓取流程集成**：WebView2 的句柄要等窗口完全就绪后才拿得到，
+  而抓取窗口是刚建出来就要用的。现在用环境变量 `DIGBEAR_CDP=1` 试验性开启，
+  处理好「等就绪」这步后再默认打开
+- ⬜ **接口 JSON 挖直链**：`Network.getResponseBody` 已验证可用，
+  还差把响应体里的媒体 URL 递归找出来并入清单
+- ⬜ **blob: 流**：要用 CDP 的 `Fetch` 域拦截二进制分片，存下来再交给
+  FFmpeg 合并 —— 这是上游明确做不到的部分
 
 ### C2 ⬜ 隐藏窗口节流加固
 - 现方案：隐藏 HWND + rAF 垫片（实测够用）
