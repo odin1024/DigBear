@@ -259,6 +259,26 @@ pub fn maybe_spawn(handle: AppHandle) {
         });
     }
 
+    // 网络层抓取的可行性验证：在主窗口上打开 CDP 的 Network 域。
+    if std::env::var("DIGBEAR_TEST_CDP").ok().as_deref() == Some("1") {
+        let handle = extension_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            let hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            match crate::crawler::cdp::imp::watch(&handle, "main", hits.clone()) {
+                Ok(()) => eprintln!("[digbear][test] CDP 已开启"),
+                Err(error) => eprintln!("[digbear][test] CDP 启动失败: {error}"),
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+            let count = hits.lock().map(|list| list.len()).unwrap_or(0);
+            eprintln!("[digbear][test] 抓到 {count} 条网络请求");
+            for hit in hits.lock().map(|list| list.clone()).unwrap_or_default() {
+                eprintln!("  [cdp] {} {} {}", hit.status, hit.mime, hit.url);
+            }
+            handle.exit(0);
+        });
+    }
+
     if std::env::var("DIGBEAR_TEST_MEASURE").ok().as_deref() == Some("1") {
         let handle = extension_handle.clone();
         tauri::async_runtime::spawn(async move {

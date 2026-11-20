@@ -48,7 +48,9 @@ robocopy $Desktop $desktopCopy /E /XD node_modules target /NFL /NDL /NJH /NJS /M
 
 # GNU 工具链下 cdylib 会导出超过 255 个符号，链接直接失败；只要 rlib 即可。
 $manifest = Join-Path $desktopCopy "src-tauri\Cargo.toml"
-$text = Get-Content $manifest -Raw
+# 必须显式指定 UTF-8：PowerShell 5.1 默认按 ANSI 读，中文注释会变乱码，
+# 甚至把下一行的依赖吞进注释里。
+$text = Get-Content $manifest -Raw -Encoding UTF8
 $text = $text -replace 'crate-type = \["staticlib", "cdylib", "rlib"\]', 'crate-type = ["rlib"]'
 [System.IO.File]::WriteAllText($manifest, $text, (New-Object System.Text.UTF8Encoding($false)))
 

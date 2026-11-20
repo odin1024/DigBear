@@ -1,4 +1,5 @@
 pub mod browser;
+pub mod cdp;
 pub mod fallback;
 pub mod script;
 mod twitter;

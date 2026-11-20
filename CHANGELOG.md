@@ -9,6 +9,22 @@
 上游使用 GitHub Releases 管理版本，没有 CHANGELOG；`0.3.2` 及更早的变更请查阅
 [上游 Releases](https://github.com/xw-meow/crawl-bear/releases)。
 
+
+### 新增 · 网络层抓取（Chrome DevTools Protocol）
+
+DOM 扫描只能看到页面源码里写死的东西：`img src`、CSS 背景图、`performance`
+计时条目。**运行时才出现的资源**——接口返回的媒体直链、动态插入的 `<video>`、
+`blob:` 开头的 MSE 流——DOM 扫描一律看不见。
+
+现在抓取时会在 WebView2 上打开 CDP 的 `Network` 域，把网络层看到的媒体请求
+一并收进结果清单：
+
+- 新增 `crawler/cdp.rs`（仅 Windows / WebView2），其它平台维持原来的 DOM 扫描
+- 实测 TechFlow 首页：图片从 **134 张增加到 159 张**，多出来的 25 张全是
+  页面运行时才请求的，DOM 扫描一条都看不到
+- 顺带修掉 `build_windows.ps1` 的一个编码坑：PowerShell 5.1 按 ANSI 读
+  `Cargo.toml`，中文注释会变乱码，甚至把下一行的依赖吞进注释里（已加 `-Encoding UTF8`）
+
 ## [未发布]
 
 > 新内容先记在这里，发版时按 `docs/RELEASES.md` 的流程整理到正式版本段落。

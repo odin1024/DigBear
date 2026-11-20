@@ -104,7 +104,14 @@ pub async fn load_and_extract(
         .build()
         .map_err(|e| AppError::new("crawl_failed", format!("无法创建爬取窗口: {e}")))?;
 
-    let result = async {
+    // 网络层监听：DOM 扫描看不到运行时才出现的资源（接口直链、动态插入的媒体）。
+    // 尽早挂上，漏得越少越好。
+    let network_hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    if let Err(error) = crate::crawler::cdp::imp::watch(app, CRAWL_LABEL, network_hits.clone()) {
+        eprintln!("[digbear] 网络层监听未启用: {error}");
+    }
+
+    let mut result = async {
         // 重站点（YouTube、电商首页）首屏可能要十几秒，给足时间再判定超时。
         let deadline = std::time::Instant::now() + StdDuration::from_secs(60);
         // 软期限：不少 SPA 永远等不到 readyState == complete（长连接、轮询、
@@ -208,7 +215,57 @@ pub async fn load_and_extract(
     .await;
 
     let _ = win.close();
+
+    // 把网络层看到的请求并进结果：DOM 扫描漏掉的资源，这里补上。
+    if let Ok(list) = network_hits.lock() {
+        for hit in list.iter() {
+            if let Some(raw) = network_hit_to_raw(hit) {
+                if let Ok(page) = result.as_mut() {
+                    let key = raw.url.split('#').next().unwrap_or(&raw.url).to_string();
+                    if !page.resources.iter().any(|item| item.url == key) {
+                        page.resources.push(raw);
+                    }
+                }
+            }
+        }
+    }
     result
+}
+
+/// 把一条网络请求转成资源条目（只收看起来像媒体的）。
+fn network_hit_to_raw(hit: &crate::crawler::cdp::imp::NetworkHit) -> Option<RawResource> {
+    let mime = hit.mime.to_ascii_lowercase();
+    let is_media = mime.starts_with("image/")
+        || mime.starts_with("video/")
+        || mime.starts_with("audio/")
+        || mime.contains("font");
+    if !is_media || hit.status >= 400 {
+        return None;
+    }
+    let parsed = url::Url::parse(&hit.url).ok()?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return None;
+    }
+    let kind = crate::core::classify::kind_from_url(&parsed)
+        .map(|kind| match kind {
+            crate::core::models::MediaKind::Image => "image".to_string(),
+            crate::core::models::MediaKind::Video => "video".to_string(),
+            crate::core::models::MediaKind::Audio => "audio".to_string(),
+            crate::core::models::MediaKind::Font => "font".to_string(),
+            _ => "other".to_string(),
+        })
+        .unwrap_or_else(|| "image".to_string());
+    Some(RawResource {
+        url: hit.url.clone(),
+        kind,
+        source: "network".to_string(),
+        filename_hint: None,
+        width: None,
+        height: None,
+        duration: None,
+        poster: None,
+        alt: None,
+    })
 }
 
 pub fn raw_kind(raw: &RawResource) -> MediaKind {

@@ -21,6 +21,8 @@ export type ResourceSource =
   | "shadow"
   | "fallback"
   | "resolver"
+  /** 来自网络层（Chrome DevTools Protocol）的请求。 */
+  | "network"
   | "other";
 
 export interface MediaResource {
