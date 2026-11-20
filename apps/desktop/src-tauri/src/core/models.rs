@@ -33,6 +33,8 @@ pub enum ResourceSource {
     Shadow,
     /// 由站点专用解析器（YouTube / X 等）解析出来的直链。
     Resolver,
+    /// 网络层（Chrome DevTools Protocol）看到的请求。
+    Network,
     Fallback,
     Other,
 }

@@ -32,6 +32,7 @@ fn source_from(raw: &str) -> ResourceSource {
         "iframe" => ResourceSource::Iframe,
         "shadow" => ResourceSource::Shadow,
         "fallback" => ResourceSource::Fallback,
+        "network" => ResourceSource::Network,
         _ => ResourceSource::Other,
     }
 }

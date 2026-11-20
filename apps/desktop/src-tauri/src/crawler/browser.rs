@@ -104,11 +104,17 @@ pub async fn load_and_extract(
         .build()
         .map_err(|e| AppError::new("crawl_failed", format!("无法创建爬取窗口: {e}")))?;
 
-    // 网络层监听：DOM 扫描看不到运行时才出现的资源（接口直链、动态插入的媒体）。
-    // 尽早挂上，漏得越少越好。
+    // 网络层监听（实验性）：需要环境变量 DIGBEAR_CDP=1 才开启。
+    //
+    // DOM 扫描看不到运行时才出现的资源（接口直链、动态插入的媒体），这部分要
+    // 在网络层看。但 WebView2 的句柄得等窗口完全就绪后才拿得到，而抓取窗口是
+    // 刚建出来就要用的 —— 这一步没处理好之前，开启反而会拖住整次抓取。
     let network_hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
-    if let Err(error) = crate::crawler::cdp::imp::watch(app, CRAWL_LABEL, network_hits.clone()) {
-        eprintln!("[digbear] 网络层监听未启用: {error}");
+    if std::env::var("DIGBEAR_CDP").ok().as_deref() == Some("1") {
+        if let Err(error) = crate::crawler::cdp::imp::watch(app, CRAWL_LABEL, network_hits.clone())
+        {
+            eprintln!("[digbear] 网络层监听未启用: {error}");
+        }
     }
 
     let mut result = async {

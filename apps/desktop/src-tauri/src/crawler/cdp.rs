@@ -2,8 +2,7 @@
 //!
 //! DOM 扫描只能看到页面源码里写死的东西：`<img src>`、CSS 背景图、
 //! `performance` 计时条目。真正难抓的是**运行时才出现的资源**——
-//! `fetch` / XHR 返回的 JSON 里的媒体直链、`blob:` 开头的 MSE 流、
-//! 动态插入的 `<video>`。
+//! `fetch` / XHR 返回的 JSON 里的媒体直链、动态插入的 `<video>`。
 //!
 //! 这些在网络层看得很清楚：WebView2 内置了 CDP，只要打开 `Network` 域，
 //! 就能收到每一条请求的 URL。
@@ -12,14 +11,10 @@
 
 #[cfg(windows)]
 pub mod imp {
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
 
     use tauri::Manager;
-    use webview2_com::Microsoft::Web::WebView2::Win32::{
-        ICoreWebView2DevToolsProtocolEventReceivedEventArgs,
-        ICoreWebView2DevToolsProtocolEventReceivedEventHandler,
-    };
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2DevToolsProtocolEventReceiver;
     use webview2_com::{
         CallDevToolsProtocolMethodCompletedHandler, DevToolsProtocolEventReceivedEventHandler,
     };
@@ -32,16 +27,9 @@ pub mod imp {
         pub url: String,
         pub mime: String,
         pub status: i64,
-    }
-
-    // 当前挂着的 CDP 事件处理器。
-    //
-    // WebView2 的事件回调是一次性的（每条事件都要重新注册），所以要留住
-    // 最新的那一个。事件回调跑在 UI 线程上，用 thread_local 存最省事，
-    // 也不用让 COM 句柄跨线程（COM 接口在 Rust 里不是 Send）。
-    thread_local! {
-        static HANDLER: std::cell::RefCell<Option<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>> =
-            const { std::cell::RefCell::new(None) };
+        /// CDP 的请求编号，取响应体时要用（下一步的「接口 JSON 挖直链」会用到）。
+        #[allow(dead_code)]
+        pub request_id: i64,
     }
 
     /// 在指定窗口上打开 CDP 的 `Network` 域，并把请求记录进共享列表。
@@ -54,41 +42,40 @@ pub mod imp {
             return Err(format!("找不到窗口 {label}"));
         };
 
-        let started = Arc::new(AtomicBool::new(false));
-        let started_for_webview = started.clone();
+        let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
+        let hits_for_webview = hits.clone();
 
         let _ = win.with_webview(move |webview| {
             let controller = webview.controller();
-            // SAFETY: controller 来自当前 WebView2 窗口，句柄由 WebView2 管理，
-            // 这里只在它还活着的时候用。
+            // SAFETY: controller 来自当前 WebView2 窗口，句柄由 WebView2 管理。
             let Ok(core) = (unsafe { controller.CoreWebView2() }) else {
                 eprintln!("[cdp] 拿不到 CoreWebView2");
+                let _ = done_tx.send(());
                 return;
             };
+            // 这里要传的是 CDP 的事件名，不是 WebView2 的接口名。
             let Ok(receiver) = (unsafe {
-                core.GetDevToolsProtocolEventReceiver(&HSTRING::from(
-                    "DevToolsProtocolEventReceived",
-                ))
+                core.GetDevToolsProtocolEventReceiver(&HSTRING::from("Network.responseReceived"))
             }) else {
                 eprintln!("[cdp] 拿不到 DevTools 事件接收器");
+                let _ = done_tx.send(());
                 return;
             };
 
-            // 先挂上事件监听，再打开 Network 域 —— 顺序反了会漏掉最早那批请求。
-            register(&receiver, &hits);
+            // WebView2 的事件回调是一次性的：每条事件都要重新挂一个，
+            // 挂上之后才会继续收到后面的事件。
+            register(&receiver, &hits_for_webview);
 
+            // 先挂监听再打开 Network 域 —— 顺序反了会漏掉最早那批请求。
             let done = CallDevToolsProtocolMethodCompletedHandler::create(Box::new(
                 move |hr, _message| {
-                    if hr.is_ok() {
-                        started_for_webview.store(true, Ordering::Relaxed);
-                        eprintln!("[cdp] Network.enable 成功");
-                    } else {
+                    if hr.is_err() {
                         eprintln!("[cdp] Network.enable 失败: {hr:?}");
                     }
                     Ok(())
                 },
             ));
-            // SAFETY: 参数都是刚构造的字符串，回调对象由 WebView2 持有。
+            // SAFETY: 参数是刚构造的字符串，回调对象由 WebView2 持有。
             let enabled = unsafe {
                 core.CallDevToolsProtocolMethod(
                     &HSTRING::from("Network.enable"),
@@ -99,19 +86,16 @@ pub mod imp {
             if enabled.is_err() {
                 eprintln!("[cdp] 调用 Network.enable 失败");
             }
+            let _ = done_tx.send(());
         });
-
-        if started.load(Ordering::Relaxed) {
-            Ok(())
-        } else {
-            // Network.enable 是异步的，这里先不当作失败；调用结果稍后由回调打印。
-            Ok(())
-        }
+        // with_webview 是投递到 UI 线程异步执行的，等它真的跑完再返回。
+        let _ = done_rx.recv_timeout(std::time::Duration::from_secs(10));
+        Ok(())
     }
 
-    /// 注册一次事件监听；回调触发后会立刻再注册一次。
+    /// 挂一次事件监听；回调触发后会立刻再挂一次，接着收下一条。
     fn register(
-        receiver: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2DevToolsProtocolEventReceiver,
+        receiver: &ICoreWebView2DevToolsProtocolEventReceiver,
         hits: &Arc<Mutex<Vec<NetworkHit>>>,
     ) {
         let receiver_for_event = receiver.clone();
@@ -129,16 +113,9 @@ pub mod imp {
                 Ok(())
             }));
 
-        // handler 必须一直活着，否则 COM 对象一释放就收不到事件了。
-        HANDLER.with(|cell| {
-            if let Ok(mut guard) = cell.try_borrow_mut() {
-                *guard = Some(handler.clone());
-            }
-        });
-
         let mut token: i64 = 0;
-        // SAFETY: 事件接收器与 handler 都是刚拿到的 COM 对象，handler 的生命周期
-        // 由上面的 thread_local 兜着；token 只是 WebView2 内部的句柄。
+        // SAFETY: 事件接收器与 handler 都是刚拿到的 COM 对象；handler 在注册后
+        // 由 WebView2 持有引用，token 只是 WebView2 内部的句柄。
         let added = unsafe { receiver.add_DevToolsProtocolEventReceived(&handler, &mut token) };
         if added.is_err() {
             eprintln!("[cdp] 注册 DevTools 事件监听失败");
@@ -147,7 +124,7 @@ pub mod imp {
 
     /// 从事件参数里取出 CDP 的 JSON 文本。
     fn read_event_json(
-        args: &ICoreWebView2DevToolsProtocolEventReceivedEventArgs,
+        args: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2DevToolsProtocolEventReceivedEventArgs,
     ) -> Option<String> {
         let mut buffer = PWSTR::null();
         // SAFETY: 传的是 PWSTR 的可变引用，WebView2 会往里写一块 CoTaskMem 内存。
@@ -165,15 +142,15 @@ pub mod imp {
     }
 
     /// 从 CDP 事件里挑出值得记录的请求。
+    ///
+    /// 注意：`GetDevToolsProtocolEventReceiver` 给回来的 JSON 已经是
+    /// `Network.responseReceived` 事件的**参数本身**（没有 method 字段），
+    /// 所以直接从 `response` 里取信息。
     fn collect_hit(json: &str, hits: &Arc<Mutex<Vec<NetworkHit>>>) {
         let Ok(value) = serde_json::from_str::<serde_json::Value>(json) else {
             return;
         };
-        let method = value.get("method").and_then(|v| v.as_str()).unwrap_or("");
-        if method != "Network.responseReceived" {
-            return;
-        }
-        let Some(response) = value.get("params").and_then(|v| v.get("response")) else {
+        let Some(response) = value.get("response") else {
             return;
         };
         let Some(url) = response.get("url").and_then(|v| v.as_str()) else {
@@ -193,6 +170,7 @@ pub mod imp {
                 url: url.to_string(),
                 mime,
                 status,
+                request_id: value.get("requestId").and_then(|v| v.as_i64()).unwrap_or(0),
             });
         }
     }
@@ -208,6 +186,7 @@ pub mod imp {
         pub url: String,
         pub mime: String,
         pub status: i64,
+        pub request_id: i64,
     }
 
     pub fn watch(

@@ -266,7 +266,9 @@ pub fn maybe_spawn(handle: AppHandle) {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             let hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
             match crate::crawler::cdp::imp::watch(&handle, "main", hits.clone()) {
-                Ok(()) => eprintln!("[digbear][test] CDP 已开启"),
+                Ok(()) => {
+                    eprintln!("[digbear][test] CDP 已开启");
+                }
                 Err(error) => eprintln!("[digbear][test] CDP 启动失败: {error}"),
             }
             tokio::time::sleep(std::time::Duration::from_secs(8)).await;

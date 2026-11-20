@@ -36,3 +36,5 @@ winreg = "0.55"
 windows = { version = "0.62", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
 # WebView2 的 COM 接口：网络层抓取（Chrome DevTools Protocol）要用
 webview2-com = "0.39"
+# implement 宏要用 windows_core 这个 crate 名；版本必须和上面那个一致
+windows-core = "0.62"
